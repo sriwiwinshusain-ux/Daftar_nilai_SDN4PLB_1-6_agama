@@ -1,0 +1,1796 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistem Daftar Nilai & Kokurikuler - SDN 4 Pulubala</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --maroon-dark: #4a0814;
+    --maroon: #781023;
+    --maroon-light: #9e1b32;
+    --green: #146c43;
+    --green-soft: #d1e7dd;
+    --yellow: #d99b00;
+    --yellow-soft: #fff3cd;
+    --blue: #0d5c91;
+    --blue-soft: #cfe2ff;
+    --bg-main: #f4ebe8;
+    --bg-card: #fdf8f7;
+    --text-dark: #261417;
+    --text-muted: #664a4f;
+    --border-color: #dec9cd;
+    --page-accent: #781023;
+    --page-bg: #f4ebe8;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+  body { display: flex; min-height: 100vh; background-color: var(--page-bg); color: var(--text-dark); transition: background-color 0.3s ease; }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: 270px;
+    background: linear-gradient(180deg, var(--maroon-dark) 0%, var(--maroon) 100%);
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    height: 100vh;
+    overflow-y: auto;
+    box-shadow: 3px 0 12px rgba(74, 8, 20, 0.25);
+    z-index: 100;
+  }
+  .sidebar-header {
+    padding: 20px 18px;
+    border-bottom: 2px solid rgba(255, 215, 0, 0.25);
+    background: rgba(0, 0, 0, 0.18);
+  }
+  .sidebar-header h2 { font-size: 1.15rem; color: #ffda6a; letter-spacing: 0.5px; }
+  .sidebar-header p { font-size: 0.78rem; color: #f0d8dc; margin-top: 4px; }
+
+  .nav-group-title {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #ffda6a;
+    padding: 14px 18px 6px;
+    font-weight: 700;
+  }
+  .nav-item {
+    padding: 10px 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.88rem;
+    color: #f8ecef;
+    border-left: 4px solid transparent;
+    transition: all 0.2s;
+  }
+  .nav-item:hover { background: rgba(255, 255, 255, 0.1); }
+  .nav-item.active {
+    background: rgba(255, 218, 106, 0.18);
+    border-left-color: #ffda6a;
+    color: #ffda6a;
+    font-weight: 600;
+  }
+  .nav-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+
+  /* MAIN CONTENT */
+  .main-wrapper { margin-left: 270px; flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+  /* TOPBAR */
+  .topbar {
+    background: linear-gradient(90deg, var(--maroon) 0%, #5c0c1b 60%, var(--blue) 100%);
+    color: #fff;
+    padding: 14px 24px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    position: sticky;
+    top: 0;
+    z-index: 90;
+  }
+  .topbar-filters { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .filter-box { display: flex; flex-direction: column; gap: 2px; }
+  .filter-box label { font-size: 0.68rem; text-transform: uppercase; color: #ffda6a; font-weight: 600; }
+  .filter-box select {
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid #ffda6a;
+    background: #3d0610;
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .topbar-actions { display: flex; gap: 8px; align-items: center; }
+
+  /* BUTTONS */
+  .btn {
+    padding: 8px 14px;
+    border-radius: 6px;
+    border: none;
+    font-size: 0.84rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: transform 0.1s, opacity 0.2s;
+  }
+  .btn:hover { opacity: 0.92; }
+  .btn:active { transform: scale(0.98); }
+  .btn-maroon { background: var(--maroon); color: #fff; }
+  .btn-green { background: var(--green); color: #fff; }
+  .btn-yellow { background: var(--yellow); color: #1f1400; }
+  .btn-blue { background: var(--blue); color: #fff; }
+  .btn-danger { background: #b02a37; color: #fff; }
+  .btn-sm { padding: 5px 9px; font-size: 0.78rem; }
+
+  /* CONTENT CONTAINER */
+  .content { padding: 24px; max-width: 1450px; width: 100%; }
+
+  /* CARDS & PANELS */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-top: 4px solid var(--page-accent);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 3px 10px rgba(74, 8, 20, 0.06);
+  }
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-color);
+  }
+  .card-title { font-size: 1.15rem; font-weight: 700; color: var(--page-accent); }
+
+  /* STATS GRID */
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; margin-bottom: 20px; }
+  .stat-card {
+    border-radius: 10px;
+    padding: 18px;
+    color: #fff;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  }
+  .stat-maroon { background: linear-gradient(135deg, var(--maroon-dark), var(--maroon-light)); }
+  .stat-green { background: linear-gradient(135deg, #0f5132, #198754); }
+  .stat-yellow { background: linear-gradient(135deg, #996c00, #d99b00); color: #1a1100; }
+  .stat-blue { background: linear-gradient(135deg, #084298, #0d6efd); }
+  .stat-card h4 { font-size: 0.8rem; text-transform: uppercase; opacity: 0.9; margin-bottom: 6px; }
+  .stat-card .val { font-size: 1.75rem; font-weight: 800; }
+  .stat-card small { font-size: 0.76rem; opacity: 0.85; }
+
+  /* FORMS */
+  .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group label { font-size: 0.82rem; font-weight: 600; color: var(--text-dark); }
+  .form-group input, .form-group select, .form-group textarea {
+    padding: 8px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: #fff9fa;
+    font-size: 0.88rem;
+    color: var(--text-dark);
+  }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+    outline: none;
+    border-color: var(--page-accent);
+    box-shadow: 0 0 0 2px rgba(120, 16, 35, 0.15);
+  }
+
+  /* TABLES */
+  .table-responsive { overflow-x: auto; border-radius: 8px; border: 1px solid var(--border-color); }
+  table { width: 100%; border-collapse: collapse; font-size: 0.84rem; background: #fffafb; }
+  th {
+    background: var(--page-accent);
+    color: #fff;
+    padding: 10px 8px;
+    text-align: center;
+    font-weight: 600;
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+  td { padding: 7px 8px; border: 1px solid var(--border-color); vertical-align: middle; }
+  tr:nth-child(even) td { background: #f9eff1; }
+  tr:hover td { background: #f2dfe3; }
+
+  .score-input {
+    width: 62px;
+    padding: 5px;
+    text-align: center;
+    border: 1px solid #cbb3b8;
+    border-radius: 4px;
+    background: #fff;
+    font-weight: 600;
+  }
+  .score-input:focus { border-color: var(--blue); background: #eef6ff; outline: none; }
+
+  /* BADGES */
+  .badge { padding: 3px 8px; border-radius: 12px; font-size: 0.74rem; font-weight: 700; display: inline-block; }
+  .badge-green { background: var(--green-soft); color: #0f5132; border: 1px solid #a3cfbb; }
+  .badge-yellow { background: var(--yellow-soft); color: #664d03; border: 1px solid #ffe69c; }
+  .badge-blue { background: var(--blue-soft); color: #084298; border: 1px solid #9ec5fe; }
+  .badge-maroon { background: #f8d7da; color: #781023; border: 1px solid #f1aeb5; }
+
+  /* TABS */
+  .sub-tabs { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .sub-tab {
+    padding: 8px 16px;
+    border-radius: 6px;
+    background: #e8d5d9;
+    color: var(--text-dark);
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    border: 1px solid var(--border-color);
+  }
+  .sub-tab.active { background: var(--page-accent); color: #fff; border-color: var(--page-accent); }
+
+  /* TOAST */
+  #toast {
+    position: fixed;
+    bottom: 22px;
+    right: 22px;
+    background: var(--green);
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.88rem;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+    display: none;
+    z-index: 999;
+  }
+
+  /* MODAL */
+  .modal-backdrop {
+    position: fixed; inset: 0; background: rgba(38, 20, 23, 0.6);
+    display: none; align-items: center; justify-content: center; z-index: 200; padding: 16px;
+  }
+  .modal-box {
+    background: var(--bg-card); border-top: 5px solid var(--maroon);
+    border-radius: 10px; max-width: 600px; width: 100%; padding: 22px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3); max-height: 90vh; overflow-y: auto;
+  }
+
+  /* PRINT STYLES */
+  @media print {
+    .sidebar, .topbar, .no-print { display: none !important; }
+    .main-wrapper { margin-left: 0 !important; }
+    body { background: #fff !important; }
+    .card { box-shadow: none !important; border: 1px solid #999 !important; break-inside: avoid; }
+    th { background: #781023 !important; color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <h2>SDN 4 PULUBALA</h2>
+    <p>Sistem Daftar Nilai & Kokurikuler</p>
+  </div>
+
+  <div class="nav-group-title">Menu Utama</div>
+  <div class="nav-item active" onclick="navigate('dashboard')" data-page="dashboard">
+    <span class="nav-dot" style="background:#ffda6a"></span> Beranda (Dashboard)
+  </div>
+  <div class="nav-item" onclick="navigate('identitas')" data-page="identitas">
+    <span class="nav-dot" style="background:#198754"></span> Identitas Sekolah & Guru
+  </div>
+  <div class="nav-item" onclick="navigate('siswa')" data-page="siswa">
+    <span class="nav-dot" style="background:#0d6efd"></span> Data Master Siswa
+  </div>
+  <div class="nav-item" onclick="navigate('perangkat')" data-page="perangkat">
+    <span class="nav-dot" style="background:#fd7e14"></span> Perangkat Pembelajaran (TP/BAB)
+  </div>
+
+  <div class="nav-group-title">Penilaian Mata Pelajaran</div>
+  <div id="mapel-nav-list"></div>
+
+  <div class="nav-group-title">Kokurikuler & Rapor</div>
+  <div class="nav-item" onclick="navigate('kokurikuler')" data-page="kokurikuler">
+    <span class="nav-dot" style="background:#20c997"></span> Kokurikuler & Karakter
+  </div>
+  <div class="nav-item" onclick="navigate('rekap')" data-page="rekap">
+    <span class="nav-dot" style="background:#ffc107"></span> Rekapitulasi & Leger Akhir
+  </div>
+</aside>
+
+<!-- MAIN CONTENT -->
+<div class="main-wrapper">
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="topbar-filters">
+      <div class="filter-box">
+        <label>Tahun Ajaran</label>
+        <select id="global-ta" onchange="changeContext()">
+          <option value="2026/2027">2026/2027</option>
+          <option value="2027/2028">2027/2028</option>
+          <option value="2028/2029">2028/2029</option>
+          <option value="2029/2030">2029/2030</option>
+        </select>
+      </div>
+      <div class="filter-box">
+        <label>Semester</label>
+        <select id="global-sem" onchange="changeContext()">
+          <option value="1">Semester 1 (Ganjil)</option>
+          <option value="2">Semester 2 (Genap)</option>
+        </select>
+      </div>
+      <div class="filter-box">
+        <label>Kelas / Ruang Guru</label>
+        <select id="global-kelas" onchange="changeContext()">
+          <option value="Kelas 1">Kelas 1</option>
+          <option value="Kelas 2">Kelas 2</option>
+          <option value="Kelas 3">Kelas 3</option>
+          <option value="Kelas 4">Kelas 4</option>
+          <option value="Kelas 5">Kelas 5</option>
+          <option value="Kelas 6">Kelas 6</option>
+          <option value="Guru Agama">Khusus Guru Agama</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="topbar-actions">
+      <span id="autosave-badge" class="badge badge-yellow">Tersimpan Otomatis</span>
+      <button class="btn btn-green" onclick="manualSave()">💾 Simpan Data</button>
+      <button class="btn btn-yellow" onclick="exportExcel()">📊 Unduh Excel</button>
+      <button class="btn btn-blue" onclick="window.print()">🖨️ Cetak PDF</button>
+    </div>
+  </header>
+
+  <!-- DYNAMIC PAGE AREA -->
+  <main class="content" id="app-content"></main>
+</div>
+
+<!-- MODAL -->
+<div class="modal-backdrop" id="modal-backdrop">
+  <div class="modal-box" id="modal-body"></div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ==================== KONFIGURASI MATA PELAJARAN & TEMA ====================
+const MAPEL_LIST = [
+  { id: 'pancasila', name: 'Pendidikan Pancasila', accent: '#8b1528', bg: '#f6eaec' },
+  { id: 'bindo', name: 'Bahasa Indonesia', accent: '#0d5c91', bg: '#e8f1f8' },
+  { id: 'mtk', name: 'Matematika', accent: '#146c43', bg: '#e7f3ed' },
+  { id: 'ipas', name: 'IPAS', accent: '#b57f00', bg: '#f9f3e3' },
+  { id: 'seni_rupa', name: 'Seni Rupa', accent: '#6f2c73', bg: '#f3eaf4' },
+  { id: 'seni_musik', name: 'Seni Musik', accent: '#0f6674', bg: '#e7f3f5' },
+  { id: 'pjok', name: 'PJOK', accent: '#1e6b34', bg: '#e8f4eb' },
+  { id: 'mulok', name: 'Muatan Lokal', accent: '#8f4700', bg: '#f8efe6' },
+  { id: 'coding', name: 'Coding', accent: '#1b3b6f', bg: '#e9eef6' },
+  { id: 'agama', name: 'Pendidikan Agama', accent: '#5e1224', bg: '#f4e9ec' }
+];
+
+const KOKURIKULER_PRESETS = {
+  'Navigasi Iman': {
+    dimensi: 'Beriman, Bertakwa kepada Tuhan YME, dan Berakhlak Mulia',
+    kebiasaan: 'Beribadah & Bermasyarakat'
+  },
+  'Gaya Hidup Berkelanjutan': {
+    dimensi: 'Beriman & Bergotong Royong',
+    kebiasaan: 'Makan Sehat dan Bergizi & Gemar Belajar'
+  },
+  'Kearifan Lokal Gorontalo': {
+    dimensi: 'Berkebinekaan Global & Kreatif',
+    kebiasaan: 'Bermasyarakat & Bangun Pagi'
+  },
+  'Bangunlah Jiwa dan Raganya': {
+    dimensi: 'Mandiri & Bernalar Kritis',
+    kebiasaan: 'Berolahraga & Tidur Cepat'
+  },
+  'Berekayasa dan Berteknologi': {
+    dimensi: 'Kreatif & Bernalar Kritis',
+    kebiasaan: 'Gemar Belajar & Mandiri'
+  }
+};
+
+const STORAGE_KEY = 'sdn4_pulubala_grading_v1';
+
+// ==================== STATE INITIALIZATION ====================
+let appState = {
+  context: { ta: '2026/2027', sem: '1', kelas: 'Kelas 1' },
+  identitas: {
+    namaSekolah: 'SDN 4 Pulubala',
+    npsn: '40500xxx',
+    alamat: 'Kecamatan Pulubala, Kabupaten Gorontalo',
+    kepalaSekolah: 'Hj. Sitti Rahmawati, S.Pd., M.Pd',
+    nipKepsek: '19750412 199903 2 005',
+    guru: {
+      'Kelas 1': { nama: 'Nurhayati Hulopi, S.Pd', nip: '19860214 201001 2 011' },
+      'Kelas 2': { nama: 'Ramlah Mooduto, S.Pd', nip: '19880520 201402 2 004' },
+      'Kelas 3': { nama: 'Samsudin Pakaya, S.Pd', nip: '19840911 200901 1 003' },
+      'Kelas 4': { nama: 'Fatmawati Yusuf, S.Pd', nip: '19900115 201503 2 007' },
+      'Kelas 5': { nama: 'Ismail Daud, S.Pd', nip: '19831102 200801 1 006' },
+      'Kelas 6': { nama: 'Dra. Mariam Katili', nip: '19780819 200501 2 009' },
+      'Guru Agama': { nama: 'Ust. Abdurahman Hasan, S.Pd.I', nip: '19870707 201101 1 008' }
+    }
+  },
+  // Data dipisahkan berdasarkan key: `${ta}_${sem}_${kelas}`
+  records: {}
+};
+
+let currentPage = 'dashboard';
+let dashboardChart = null;
+
+function getContextKey() {
+  const { ta, sem, kelas } = appState.context;
+  return `${ta}__${sem}__${kelas}`;
+}
+
+function defaultStudents() {
+  const names = [
+    ['001', 'Ahmad Fauzan Hulopi', 'L'],
+    ['002', 'Aisyah Putri Mooduto', 'P'],
+    ['003', 'Moh. Rizky Pakaya', 'L'],
+    ['004', 'Siti Nurhaliza Daud', 'P'],
+    ['005', 'Fadhil Pratama Yusuf', 'L'],
+    ['006', 'Nabila Zahra Katili', 'P'],
+    ['007', 'Alif Ramadhan Hasan', 'L'],
+    ['008', 'Keyla Maharani Lihawa', 'P'],
+    ['009', 'Raffi Ahmad Biki', 'L'],
+    ['010', 'Dinda Kirana Polapa', 'P'],
+    ['011', 'Zulkifli Saputra Datau', 'L'],
+    ['012', 'Mutia Rahma Ibrahim', 'P'],
+    ['013', 'Farhan Hidayatullah', 'L'],
+    ['014', 'Syifa Aulia Rahman', 'P'],
+    ['015', 'Ilham Akbar Tomayahu', 'L']
+  ];
+  return names.map((s, idx) => ({
+    id: 'std_' + (idx + 1),
+    nis: '2026' + s[0],
+    nama: s[1],
+    jk: s[2]
+  }));
+}
+
+function defaultPerangkat() {
+  const obj = {};
+  MAPEL_LIST.forEach(m => {
+    obj[m.id] = {
+      tps: [
+        { id: 'tp1', kode: 'TP 1', elemen: 'Pemahaman Konsep', deskripsi: `Memahami konsep dasar ${m.name} secara mandiri` },
+        { id: 'tp2', kode: 'TP 2', elemen: 'Penerapan', deskripsi: `Menerapkan keterampilan ${m.name} dalam kehidupan sehari-hari` },
+        { id: 'tp3', kode: 'TP 3', elemen: 'Analisis', deskripsi: `Menganalisis permasalahan sederhana terkait ${m.name}` }
+      ],
+      babs: [
+        { id: 'bab1', kode: 'BAB 1', lingkup: `Pengenalan & Dasar ${m.name}` },
+        { id: 'bab2', kode: 'BAB 2', lingkup: `Eksplorasi Lanjutan ${m.name}` }
+      ]
+    };
+  });
+  return obj;
+}
+
+function defaultKokurikuler() {
+  return [
+    {
+      id: 'kok_1',
+      tema: 'Navigasi Iman',
+      kegiatan: 'Hafalan 13 Surat Pendek',
+      dimensi: 'Beriman, Bertakwa kepada Tuhan YME, dan Berakhlak Mulia',
+      kebiasaan: 'Beribadah & Bermasyarakat',
+      aktif: true
+    },
+    {
+      id: 'kok_2',
+      tema: 'Navigasi Iman',
+      kegiatan: 'Hafalan Doa Sholat',
+      dimensi: 'Beriman, Bertakwa kepada Tuhan YME, dan Berakhlak Mulia',
+      kebiasaan: 'Beribadah & Bermasyarakat',
+      aktif: true
+    },
+    {
+      id: 'kok_3',
+      tema: 'Gaya Hidup Berkelanjutan',
+      kegiatan: 'Kebun Sekolah & Pilah Sampah Organik',
+      dimensi: 'Beriman & Bergotong Royong',
+      kebiasaan: 'Makan Sehat dan Bergizi & Gemar Belajar',
+      aktif: true
+    },
+    {
+      id: 'kok_4',
+      tema: 'Kearifan Lokal Gorontalo',
+      kegiatan: 'Festival Bahasa & Budaya Hulondhalo',
+      dimensi: 'Berkebinekaan Global & Kreatif',
+      kebiasaan: 'Bermasyarakat & Bangun Pagi',
+      aktif: true
+    }
+  ];
+}
+
+function ensureContextData() {
+  const key = getContextKey();
+  if (!appState.records[key]) {
+    const students = defaultStudents();
+    const perangkat = defaultPerangkat();
+    const kokurikulerList = defaultKokurikuler();
+    const nilai = {};
+    const kokurikulerNilai = {};
+    const absensi = {};
+
+    MAPEL_LIST.forEach(m => {
+      nilai[m.id] = { formatif: {}, sumatif: {} };
+      students.forEach(s => {
+        nilai[m.id].formatif[s.id] = { tp1: 82, tp2: 85, tp3: 84 };
+        nilai[m.id].sumatif[s.id] = { bab1: 84, bab2: 86, sas: 85 };
+      });
+    });
+
+    students.forEach(s => {
+      kokurikulerNilai[s.id] = {
+        kok_1: 'Sudah Berkembang',
+        kok_2: 'Berkembang Sesuai Harapan',
+        kok_3: 'Sudah Berkembang',
+        kok_4: 'Berkembang Sesuai Harapan'
+      };
+      absensi[s.id] = { sakit: 0, izin: 0, alpa: 0 };
+    });
+
+    appState.records[key] = {
+      students,
+      perangkat,
+      nilai,
+      kokurikulerList,
+      kokurikulerNilai,
+      absensi
+    };
+  }
+  return appState.records[key];
+}
+
+// ==================== STORAGE FUNCTIONS ====================
+function loadState() {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    try {
+      appState = JSON.parse(saved);
+    } catch (e) { console.error(e); }
+  }
+  ensureContextData();
+}
+
+function autoSave() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+  const badge = document.getElementById('autosave-badge');
+  if (badge) {
+    badge.textContent = '✓ Tersimpan (' + new Date().toLocaleTimeString('id-ID') + ')';
+  }
+}
+
+function manualSave() {
+  autoSave();
+  showToast('Data berhasil disimpan secara permanen ke penyimpanan lokal!');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.display = 'block';
+  setTimeout(() => { t.style.display = 'none'; }, 3000);
+}
+
+// ==================== NAVIGATION & THEME ====================
+function initSidebar() {
+  const container = document.getElementById('mapel-nav-list');
+  container.innerHTML = MAPEL_LIST.map(m => `
+    <div class="nav-item" onclick="navigate('mapel_${m.id}')" data-page="mapel_${m.id}">
+      <span class="nav-dot" style="background:${m.accent}; border:1px solid #fff"></span> ${m.name}
+    </div>
+  `).join('');
+}
+
+function applyPageTheme(pageId) {
+  let accent = '#781023';
+  let bg = '#f4ebe8';
+  if (pageId.startsWith('mapel_')) {
+    const mId = pageId.replace('mapel_', '');
+    const m = MAPEL_LIST.find(x => x.id === mId);
+    if (m) { accent = m.accent; bg = m.bg; }
+  } else if (pageId === 'identitas') {
+    accent = '#146c43'; bg = '#e7f2ec';
+  } else if (pageId === 'siswa') {
+    accent = '#0d5c91'; bg = '#e7eff7';
+  } else if (pageId === 'perangkat') {
+    accent = '#b57f00'; bg = '#f8f2e4';
+  } else if (pageId === 'kokurikuler') {
+    accent = '#0f6674'; bg = '#e6f2f4';
+  } else if (pageId === 'rekap') {
+    accent = '#5e1224'; bg = '#f3e7ea';
+  }
+  document.documentElement.style.setProperty('--page-accent', accent);
+  document.documentElement.style.setProperty('--page-bg', bg);
+}
+
+function navigate(pageId) {
+  currentPage = pageId;
+  document.querySelectorAll('.nav-item').forEach(el => {
+    el.classList.toggle('active', el.getAttribute('data-page') === pageId);
+  });
+  applyPageTheme(pageId);
+  renderCurrentPage();
+}
+
+function changeContext() {
+  appState.context.ta = document.getElementById('global-ta').value;
+  appState.context.sem = document.getElementById('global-sem').value;
+  appState.context.kelas = document.getElementById('global-kelas').value;
+  ensureContextData();
+  autoSave();
+  renderCurrentPage();
+  showToast(`Konteks diubah ke ${appState.context.kelas} - TA ${appState.context.ta} (Sem ${appState.context.sem})`);
+}
+
+// ==================== CALCULATION HELPERS ====================
+function calcMapelFinal(rec, mapelId, studentId) {
+  const tps = rec.perangkat[mapelId]?.tps || [];
+  const babs = rec.perangkat[mapelId]?.babs || [];
+  const fScores = rec.nilai[mapelId]?.formatif?.[studentId] || {};
+  const sScores = rec.nilai[mapelId]?.sumatif?.[studentId] || {};
+
+  let fSum = 0, fCount = 0;
+  tps.forEach(tp => {
+    const v = Number(fScores[tp.id]);
+    if (!isNaN(v) && fScores[tp.id] !== '' && fScores[tp.id] !== undefined) {
+      fSum += v; fCount++;
+    }
+  });
+  const avgF = fCount > 0 ? fSum / fCount : 0;
+
+  let sSum = 0, sCount = 0;
+  babs.forEach(b => {
+    const v = Number(sScores[b.id]);
+    if (!isNaN(v) && sScores[b.id] !== '' && sScores[b.id] !== undefined) {
+      sSum += v; sCount++;
+    }
+  });
+  const sas = Number(sScores.sas);
+  if (!isNaN(sas) && sScores.sas !== '' && sScores.sas !== undefined) {
+    sSum += sas; sCount++;
+  }
+  const avgS = sCount > 0 ? sSum / sCount : 0;
+
+  if (fCount === 0 && sCount === 0) return 0;
+  if (fCount === 0) return Math.round(avgS);
+  if (sCount === 0) return Math.round(avgF);
+  return Math.round((avgF * 0.4) + (avgS * 0.6));
+}
+
+function generateKokurikulerDesc(rec, student) {
+  const activeItems = rec.kokurikulerList.filter(k => k.aktif);
+  if (activeItems.length === 0) return 'Belum ada kegiatan kokurikuler aktif pada semester ini.';
+  const sVals = rec.kokurikulerNilai[student.id] || {};
+  const parts = activeItems.map(item => {
+    const pred = sVals[item.id] || 'Berkembang Sesuai Harapan';
+    return `pada tema ${item.tema} (${item.kegiatan}) menunjukkan capaian ${pred} dalam dimensi ${item.dimensi} serta pembiasaan ${item.kebiasaan}`;
+  });
+  return `Ananda ${student.nama} ${parts.join('; ')}.`;
+}
+
+// ==================== PAGE RENDERERS ====================
+function renderCurrentPage() {
+  const rec = ensureContextData();
+  const container = document.getElementById('app-content');
+
+  if (currentPage === 'dashboard') renderDashboard(container, rec);
+  else if (currentPage === 'identitas') renderIdentitas(container);
+  else if (currentPage === 'siswa') renderSiswa(container, rec);
+  else if (currentPage === 'perangkat') renderPerangkat(container, rec);
+  else if (currentPage === 'kokurikuler') renderKokurikuler(container, rec);
+  else if (currentPage === 'rekap') renderRekap(container, rec);
+  else if (currentPage.startsWith('mapel_')) {
+    const mapelId = currentPage.replace('mapel_', '');
+    renderMapel(container, rec, mapelId);
+  }
+}
+
+// 1. DASHBOARD
+function renderDashboard(container, rec) {
+  const { ta, sem, kelas } = appState.context;
+  const guruInfo = appState.identitas.guru[kelas] || { nama: '-', nip: '-' };
+  const activeKok = rec.kokurikulerList.filter(k => k.aktif).length;
+
+  // Hitung rata-rata per mapel
+  const mapelLabels = MAPEL_LIST.map(m => m.name);
+  const mapelAvgs = MAPEL_LIST.map(m => {
+    if (rec.students.length === 0) return 0;
+    const total = rec.students.reduce((acc, s) => acc + calcMapelFinal(rec, m.id, s.id), 0);
+    return +(total / rec.students.length).toFixed(1);
+  });
+  const overallAvg = mapelAvgs.length ? (mapelAvgs.reduce((a,b)=>a+b,0) / mapelAvgs.length).toFixed(1) : 0;
+
+  container.innerHTML = `
+    <div class="card" style="background: linear-gradient(120deg, #4a0814 0%, #781023 55%, #0d5c91 100%); color:#fff; border:none;">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
+        <div>
+          <span class="badge badge-yellow" style="margin-bottom:8px;">TAHUN AJARAN ${ta} • SEMESTER ${sem}</span>
+          <h1 style="font-size:1.6rem; color:#ffda6a; margin-bottom:4px;">${appState.identitas.namaSekolah}</h1>
+          <p style="font-size:0.9rem; opacity:0.9;">${appState.identitas.alamat} | Kepala Sekolah: <b>${appState.identitas.kepalaSekolah}</b></p>
+        </div>
+        <div style="background:rgba(255,255,255,0.12); padding:14px 18px; border-radius:8px; border:1px solid rgba(255,218,106,0.4);">
+          <div style="font-size:0.75rem; color:#ffda6a; text-transform:uppercase;">Ruang Aktif: ${kelas}</div>
+          <div style="font-size:1.05rem; font-weight:700; margin-top:2px;">${guruInfo.nama}</div>
+          <div style="font-size:0.8rem; opacity:0.85;">NIP. ${guruInfo.nip}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card stat-maroon">
+        <h4>Peserta Didik Terdaftar</h4>
+        <div class="val">${rec.students.length}</div>
+        <small>Ruang ${kelas} (Sem ${sem})</small>
+      </div>
+      <div class="stat-card stat-green">
+        <h4>Rata-Rata Capaian Kelas</h4>
+        <div class="val">${overallAvg}</div>
+        <small>Dari ${MAPEL_LIST.length} Mata Pelajaran</small>
+      </div>
+      <div class="stat-card stat-yellow">
+        <h4>Kegiatan Kokurikuler Aktif</h4>
+        <div class="val">${activeKok}</div>
+        <small>Terintegrasi 7 Kebiasaan Hebat</small>
+      </div>
+      <div class="stat-card stat-blue">
+        <h4>Status Penyimpanan</h4>
+        <div class="val" style="font-size:1.3rem; margin-top:6px;">Siap & Aman</div>
+        <small>Terpisah per Semester & TA</small>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Grafik Rata-Rata Capaian Nilai per Mata Pelajaran (${kelas} - TA ${ta} Sem ${sem})</div>
+      </div>
+      <div style="height:320px; position:relative;">
+        <canvas id="chartCapaian"></canvas>
+      </div>
+    </div>
+  `;
+
+  const ctx = document.getElementById('chartCapaian').getContext('2d');
+  if (dashboardChart) dashboardChart.destroy();
+  dashboardChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: mapelLabels,
+      datasets: [{
+        label: 'Rata-Rata Nilai Akhir',
+        data: mapelAvgs,
+        backgroundColor: ['#781023', '#0d5c91', '#146c43', '#d99b00', '#6f2c73', '#0f6674', '#1e6b34', '#8f4700', '#1b3b6f', '#9e1b32'],
+        borderRadius: 6
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: { y: { beginAtZero: true, max: 100 } },
+      plugins: { legend: { display: false } }
+    }
+  });
+}
+
+// 2. IDENTITAS SEKOLAH & GURU
+function renderIdentitas(container) {
+  const idn = appState.identitas;
+  const kelasKeys = ['Kelas 1', 'Kelas 2', 'Kelas 3', 'Kelas 4', 'Kelas 5', 'Kelas 6', 'Guru Agama'];
+
+  container.innerHTML = `
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Identitas Sekolah & Kepala Sekolah</div>
+        <button class="btn btn-green" onclick="saveIdentitasForm()">💾 Simpan Identitas</button>
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Nama Sekolah</label>
+          <input type="text" id="idn-sekolah" value="${idn.namaSekolah}">
+        </div>
+        <div class="form-group">
+          <label>NPSN</label>
+          <input type="text" id="idn-npsn" value="${idn.npsn}">
+        </div>
+        <div class="form-group">
+          <label>Alamat Sekolah</label>
+          <input type="text" id="idn-alamat" value="${idn.alamat}">
+        </div>
+        <div class="form-group">
+          <label>Nama Kepala Sekolah</label>
+          <input type="text" id="idn-kepsek" value="${idn.kepalaSekolah}">
+        </div>
+        <div class="form-group">
+          <label>NIP Kepala Sekolah</label>
+          <input type="text" id="idn-nip-kepsek" value="${idn.nipKepsek}">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Daftar Data Guru Kelas 1–6 & Guru Agama</div>
+        <button class="btn btn-maroon" onclick="saveIdentitasForm()">💾 Simpan Data Guru</button>
+      </div>
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:180px;">Jabatan / Ruang</th>
+              <th>Nama Lengkap & Gelar Guru</th>
+              <th>NIP</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${kelasKeys.map(k => `
+              <tr>
+                <td><b>${k === 'Guru Agama' ? 'Guru Mata Pelajaran Agama' : 'Guru ' + k}</b></td>
+                <td><input type="text" id="guru-nama-${k}" value="${idn.guru[k]?.nama || ''}" style="width:100%; padding:6px; border:1px solid #ccc; border-radius:4px;"></td>
+                <td><input type="text" id="guru-nip-${k}" value="${idn.guru[k]?.nip || ''}" style="width:100%; padding:6px; border:1px solid #ccc; border-radius:4px;"></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+function saveIdentitasForm() {
+  appState.identitas.namaSekolah = document.getElementById('idn-sekolah').value;
+  appState.identitas.npsn = document.getElementById('idn-npsn').value;
+  appState.identitas.alamat = document.getElementById('idn-alamat').value;
+  appState.identitas.kepalaSekolah = document.getElementById('idn-kepsek').value;
+  appState.identitas.nipKepsek = document.getElementById('idn-nip-kepsek').value;
+
+  const kelasKeys = ['Kelas 1', 'Kelas 2', 'Kelas 3', 'Kelas 4', 'Kelas 5', 'Kelas 6', 'Guru Agama'];
+  kelasKeys.forEach(k => {
+    appState.identitas.guru[k] = {
+      nama: document.getElementById(`guru-nama-${k}`).value,
+      nip: document.getElementById(`guru-nip-${k}`).value
+    };
+  });
+  autoSave();
+  showToast('Identitas sekolah dan data seluruh guru berhasil disimpan!');
+}
+
+// 3. DATA MASTER SISWA
+function renderSiswa(container, rec) {
+  const { ta, sem, kelas } = appState.context;
+  container.innerHTML = `
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Data Peserta Didik — ${kelas} (TA ${ta} • Semester ${sem})</div>
+        <button class="btn btn-blue" onclick="openStudentModal()">➕ Tambah Siswa</button>
+      </div>
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:50px;">No</th>
+              <th style="width:140px;">NIS / NISN</th>
+              <th>Nama Lengkap Siswa</th>
+              <th style="width:90px;">L/P</th>
+              <th style="width:160px;">Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rec.students.map((s, idx) => `
+              <tr>
+                <td style="text-align:center;">${idx + 1}</td>
+                <td style="text-align:center;">${s.nis}</td>
+                <td><b>${s.nama}</b></td>
+                <td style="text-align:center;">${s.jk}</td>
+                <td style="text-align:center;">
+                  <button class="btn btn-yellow btn-sm" onclick="openStudentModal('${s.id}')">✏️ Edit</button>
+                  <button class="btn btn-danger btn-sm" onclick="deleteStudent('${s.id}')">🗑️ Hapus</button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+function openStudentModal(studentId = null) {
+  const rec = ensureContextData();
+  const std = studentId ? rec.students.find(s => s.id === studentId) : { nis: '', nama: '', jk: 'L' };
+  document.getElementById('modal-body').innerHTML = `
+    <h3 style="color:var(--maroon); margin-bottom:14px;">${studentId ? 'Edit Data Siswa' : 'Tambah Siswa Baru'}</h3>
+    <div class="form-group" style="margin-bottom:12px;">
+      <label>NIS / NISN</label>
+      <input type="text" id="m-std-nis" value="${std.nis}" placeholder="Contoh: 2026016">
+    </div>
+    <div class="form-group" style="margin-bottom:12px;">
+      <label>Nama Lengkap Siswa</label>
+      <input type="text" id="m-std-nama" value="${std.nama}" placeholder="Masukkan nama lengkap">
+    </div>
+    <div class="form-group" style="margin-bottom:18px;">
+      <label>Jenis Kelamin</label>
+      <select id="m-std-jk">
+        <option value="L" ${std.jk === 'L' ? 'selected' : ''}>Laki-laki (L)</option>
+        <option value="P" ${std.jk === 'P' ? 'selected' : ''}>Perempuan (P)</option>
+      </select>
+    </div>
+    <div style="display:flex; justify-content:flex-end; gap:8px;">
+      <button class="btn" style="background:#ccc;" onclick="closeModal()">Batal</button>
+      <button class="btn btn-green" onclick="saveStudent('${studentId || ''}')">Simpan</button>
+    </div>
+  `;
+  document.getElementById('modal-backdrop').style.display = 'flex';
+}
+
+function saveStudent(studentId) {
+  const rec = ensureContextData();
+  const nis = document.getElementById('m-std-nis').value.trim();
+  const nama = document.getElementById('m-std-nama').value.trim();
+  const jk = document.getElementById('m-std-jk').value;
+  if (!nama) return alert('Nama siswa wajib diisi!');
+
+  if (studentId) {
+    const idx = rec.students.findIndex(s => s.id === studentId);
+    if (idx > -1) rec.students[idx] = { ...rec.students[idx], nis, nama, jk };
+  } else {
+    const newId = 'std_' + Date.now();
+    rec.students.push({ id: newId, nis, nama, jk });
+    MAPEL_LIST.forEach(m => {
+      rec.nilai[m.id].formatif[newId] = {};
+      rec.nilai[m.id].sumatif[newId] = {};
+    });
+    rec.kokurikulerNilai[newId] = {};
+    rec.absensi[newId] = { sakit: 0, izin: 0, alpa: 0 };
+  }
+  closeModal();
+  autoSave();
+  renderCurrentPage();
+  showToast('Data siswa berhasil diperbarui!');
+}
+
+function deleteStudent(studentId) {
+  if (!confirm('Hapus data siswa ini beserta seluruh nilainya pada semester aktif?')) return;
+  const rec = ensureContextData();
+  rec.students = rec.students.filter(s => s.id !== studentId);
+  autoSave();
+  renderCurrentPage();
+  showToast('Data siswa telah dihapus.');
+}
+
+// 4. PERANGKAT PEMBELAJARAN (TP, ELEMEN, BAB, LINGKUP MATERI)
+let selectedPerangkatMapel = 'pancasila';
+function renderPerangkat(container, rec) {
+  const { ta, sem, kelas } = appState.context;
+  const pData = rec.perangkat[selectedPerangkatMapel];
+
+  container.innerHTML = `
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Perangkat Pembelajaran (TP & BAB) — ${kelas} (TA ${ta} • Sem ${sem})</div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <label style="font-size:0.85rem; font-weight:700;">Pilih Mapel:</label>
+          <select style="padding:7px 12px; border-radius:6px; border:2px solid var(--page-accent); font-weight:600;"
+                  onchange="selectedPerangkatMapel=this.value; renderCurrentPage();">
+            ${MAPEL_LIST.map(m => `<option value="${m.id}" ${m.id === selectedPerangkatMapel ? 'selected' : ''}>${m.name}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+
+      <!-- TABEL TP & ELEMEN -->
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <h4 style="color:var(--maroon);">A. Tujuan Pembelajaran (TP) & Elemen (Kolom Nilai Formatif)</h4>
+        <button class="btn btn-green btn-sm" onclick="openTpModal()">➕ Tambah TP</button>
+      </div>
+      <div class="table-responsive" style="margin-bottom:24px;">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:100px;">Kode TP</th>
+              <th style="width:200px;">Elemen</th>
+              <th>Deskripsi Tujuan Pembelajaran</th>
+              <th style="width:150px;">Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${pData.tps.map(tp => `
+              <tr>
+                <td style="text-align:center;"><b>${tp.kode}</b></td>
+                <td>${tp.elemen}</td>
+                <td>${tp.deskripsi}</td>
+                <td style="text-align:center;">
+                  <button class="btn btn-yellow btn-sm" onclick="openTpModal('${tp.id}')">✏️ Edit</button>
+                  <button class="btn btn-danger btn-sm" onclick="deleteTp('${tp.id}')">🗑️ Hapus</button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- TABEL BAB & LINGKUP MATERI -->
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <h4 style="color:var(--blue);">B. BAB & Lingkup Materi (Kolom Nilai Sumatif)</h4>
+        <button class="btn btn-blue btn-sm" onclick="openBabModal()">➕ Tambah BAB</button>
+      </div>
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:120px;">Kode BAB</th>
+              <th>Lingkup Materi</th>
+              <th style="width:150px;">Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${pData.babs.map(b => `
+              <tr>
+                <td style="text-align:center;"><b>${b.kode}</b></td>
+                <td>${b.lingkup}</td>
+                <td style="text-align:center;">
+                  <button class="btn btn-yellow btn-sm" onclick="openBabModal('${b.id}')">✏️ Edit</button>
+                  <button class="btn btn-danger btn-sm" onclick="deleteBab('${b.id}')">🗑️ Hapus</button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+function openTpModal(tpId = null) {
+  const rec = ensureContextData();
+  const list = rec.perangkat[selectedPerangkatMapel].tps;
+  const item = tpId ? list.find(x => x.id === tpId) : { kode: 'TP ' + (list.length + 1), elemen: '', deskripsi: '' };
+
+  document.getElementById('modal-body').innerHTML = `
+    <h3 style="color:var(--maroon); margin-bottom:14px;">${tpId ? 'Edit Tujuan Pembelajaran' : 'Tambah Tujuan Pembelajaran'}</h3>
+    <div class="form-group" style="margin-bottom:12px;">
+      <label>Kode TP (Label Kolom)</label>
+      <input type="text" id="m-tp-kode" value="${item.kode}">
+    </div>
+    <div class="form-group" style="margin-bottom:12px;">
+      <label>Elemen</label>
+      <input type="text" id="m-tp-elemen" value="${item.elemen}" placeholder="Contoh: Bilangan / Menyimak">
+    </div>
+    <div class="form-group" style="margin-bottom:18px;">
+      <label>Deskripsi Tujuan Pembelajaran</label>
+      <textarea id="m-tp-desc" rows="3">${item.deskripsi}</textarea>
+    </div>
+    <div style="display:flex; justify-content:flex-end; gap:8px;">
+      <button class="btn" style="background:#ccc;" onclick="closeModal()">Batal</button>
+      <button class="btn btn-green" onclick="saveTp('${tpId || ''}')">Simpan TP</button>
+    </div>
+  `;
+  document.getElementById('modal-backdrop').style.display = 'flex';
+}
+
+function saveTp(tpId) {
+  const rec = ensureContextData();
+  const list = rec.perangkat[selectedPerangkatMapel].tps;
+  const kode = document.getElementById('m-tp-kode').value.trim();
+  const elemen = document.getElementById('m-tp-elemen').value.trim();
+  const deskripsi = document.getElementById('m-tp-desc').value.trim();
+  if (!kode) return alert('Kode TP wajib diisi!');
+
+  if (tpId) {
+    const idx = list.findIndex(x => x.id === tpId);
+    if (idx > -1) list[idx] = { ...list[idx], kode, elemen, deskripsi };
+  } else {
+    list.push({ id: 'tp_' + Date.now(), kode, elemen, deskripsi });
+  }
+  closeModal();
+  autoSave();
+  renderCurrentPage();
+  showToast('Tujuan Pembelajaran berhasil disimpan!');
+}
+
+function deleteTp(tpId) {
+  if (!confirm('Hapus TP ini? Kolom penilaian formatif terkait juga akan disesuaikan.')) return;
+  const rec = ensureContextData();
+  rec.perangkat[selectedPerangkatMapel].tps = rec.perangkat[selectedPerangkatMapel].tps.filter(x => x.id !== tpId);
+  autoSave();
+  renderCurrentPage();
+}
+
+function openBabModal(babId = null) {
+  const rec = ensureContextData();
+  const list = rec.perangkat[selectedPerangkatMapel].babs;
+  const item = babId ? list.find(x => x.id === babId) : { kode: 'BAB ' + (list.length + 1), lingkup: '' };
+
+  document.getElementById('modal-body').innerHTML = `
+    <h3 style="color:var(--blue); margin-bottom:14px;">${babId ? 'Edit BAB & Lingkup Materi' : 'Tambah BAB & Lingkup Materi'}</h3>
+    <div class="form-group" style="margin-bottom:12px;">
+      <label>Kode BAB (Label Kolom Sumatif)</label>
+      <input type="text" id="m-bab-kode" value="${item.kode}">
+    </div>
+    <div class="form-group" style="margin-bottom:18px;">
+      <label>Lingkup Materi</label>
+      <textarea id="m-bab-lingkup" rows="3">${item.lingkup}</textarea>
+    </div>
+    <div style="display:flex; justify-content:flex-end; gap:8px;">
+      <button class="btn" style="background:#ccc;" onclick="closeModal()">Batal</button>
+      <button class="btn btn-blue" onclick="saveBab('${babId || ''}')">Simpan BAB</button>
+    </div>
+  `;
+  document.getElementById('modal-backdrop').style.display = 'flex';
+}
+
+function saveBab(babId) {
+  const rec = ensureContextData();
+  const list = rec.perangkat[selectedPerangkatMapel].babs;
+  const kode = document.getElementById('m-bab-kode').value.trim();
+  const lingkup = document.getElementById('m-bab-lingkup').value.trim();
+  if (!kode) return alert('Kode BAB wajib diisi!');
+
+  if (babId) {
+    const idx = list.findIndex(x => x.id === babId);
+    if (idx > -1) list[idx] = { ...list[idx], kode, lingkup };
+  } else {
+    list.push({ id: 'bab_' + Date.now(), kode, lingkup });
+  }
+  closeModal();
+  autoSave();
+  renderCurrentPage();
+  showToast('BAB & Lingkup Materi berhasil disimpan!');
+}
+
+function deleteBab(babId) {
+  if (!confirm('Hapus BAB ini?')) return;
+  const rec = ensureContextData();
+  rec.perangkat[selectedPerangkatMapel].babs = rec.perangkat[selectedPerangkatMapel].babs.filter(x => x.id !== babId);
+  autoSave();
+  renderCurrentPage();
+}
+
+// 5. HALAMAN MATA PELAJARAN (FORMATIF & SUMATIF DINAMIS)
+let activeMapelTab = 'formatif';
+function renderMapel(container, rec, mapelId) {
+  const mapel = MAPEL_LIST.find(m => m.id === mapelId);
+  const { ta, sem, kelas } = appState.context;
+  const tps = rec.perangkat[mapelId]?.tps || [];
+  const babs = rec.perangkat[mapelId]?.babs || [];
+
+  container.innerHTML = `
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Daftar Nilai ${mapel.name} — ${kelas}</div>
+          <small style="color:var(--text-muted);">Tahun Ajaran ${ta} • Semester ${sem} (Kolom otomatis sinkron dengan Perangkat Pembelajaran)</small>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="btn btn-yellow btn-sm" onclick="selectedPerangkatMapel='${mapelId}'; navigate('perangkat');">⚙️ Kelola TP/BAB Mapel Ini</button>
+          <button class="btn btn-danger btn-sm" onclick="resetMapelScores('${mapelId}')">🗑️ Kosongkan Nilai</button>
+          <button class="btn btn-green btn-sm" onclick="manualSave()">💾 Simpan Nilai</button>
+        </div>
+      </div>
+
+      <div class="sub-tabs">
+        <div class="sub-tab ${activeMapelTab === 'formatif' ? 'active' : ''}" onclick="activeMapelTab='formatif'; renderCurrentPage();">
+          1. Penilaian Formatif (${tps.length} TP)
+        </div>
+        <div class="sub-tab ${activeMapelTab === 'sumatif' ? 'active' : ''}" onclick="activeMapelTab='sumatif'; renderCurrentPage();">
+          2. Penilaian Sumatif (${babs.length} BAB + SAS)
+        </div>
+        <div class="sub-tab ${activeMapelTab === 'akhir' ? 'active' : ''}" onclick="activeMapelTab='akhir'; renderCurrentPage();">
+          3. Nilai Akhir & Deskripsi Capaian
+        </div>
+      </div>
+
+      ${activeMapelTab === 'formatif' ? renderFormatifTable(rec, mapelId, tps) : ''}
+      ${activeMapelTab === 'sumatif' ? renderSumatifTable(rec, mapelId, babs) : ''}
+      ${activeMapelTab === 'akhir' ? renderMapelAkhirTable(rec, mapelId, tps) : ''}
+    </div>
+  `;
+}
+
+function renderFormatifTable(rec, mapelId, tps) {
+  return `
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:45px;">No</th>
+            <th style="min-width:200px; text-align:left;">Nama Peserta Didik</th>
+            ${tps.map(tp => `<th title="${tp.deskripsi}">${tp.kode}<br><small style="font-weight:400; font-size:0.7rem;">${tp.elemen}</small></th>`).join('')}
+            <th style="width:100px; background:#146c43;">Rata Formatif</th>
+            <th style="width:80px;">Aksi</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rec.students.map((s, idx) => {
+            const scores = rec.nilai[mapelId].formatif[s.id] || {};
+            let sum = 0, cnt = 0;
+            tps.forEach(tp => {
+              const v = Number(scores[tp.id]);
+              if (!isNaN(v) && scores[tp.id] !== '' && scores[tp.id] !== undefined) { sum += v; cnt++; }
+            });
+            const avg = cnt ? (sum / cnt).toFixed(1) : '-';
+            return `
+              <tr>
+                <td style="text-align:center;">${idx + 1}</td>
+                <td><b>${s.nama}</b></td>
+                ${tps.map(tp => `
+                  <td style="text-align:center;">
+                    <input type="number" min="0" max="100" class="score-input"
+                      value="${scores[tp.id] ?? ''}"
+                      onchange="updateScore('${mapelId}', 'formatif', '${s.id}', '${tp.id}', this.value)">
+                  </td>
+                `).join('')}
+                <td style="text-align:center; font-weight:700; color:#146c43;">${avg}</td>
+                <td style="text-align:center;">
+                  <button class="btn btn-danger btn-sm" title="Hapus nilai baris ini" onclick="clearStudentRowScore('${mapelId}', 'formatif', '${s.id}')">🗑️</button>
+                </td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderSumatifTable(rec, mapelId, babs) {
+  return `
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:45px;">No</th>
+            <th style="min-width:200px; text-align:left;">Nama Peserta Didik</th>
+            ${babs.map(b => `<th title="${b.lingkup}">${b.kode}<br><small style="font-weight:400; font-size:0.7rem;">${b.lingkup.substring(0,22)}...</small></th>`).join('')}
+            <th style="background:#0d5c91;">Sumatif Akhir Semester (SAS)</th>
+            <th style="width:100px; background:#146c43;">Rata Sumatif</th>
+            <th style="width:80px;">Aksi</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rec.students.map((s, idx) => {
+            const scores = rec.nilai[mapelId].sumatif[s.id] || {};
+            let sum = 0, cnt = 0;
+            babs.forEach(b => {
+              const v = Number(scores[b.id]);
+              if (!isNaN(v) && scores[b.id] !== '' && scores[b.id] !== undefined) { sum += v; cnt++; }
+            });
+            const sas = Number(scores.sas);
+            if (!isNaN(sas) && scores.sas !== '' && scores.sas !== undefined) { sum += sas; cnt++; }
+            const avg = cnt ? (sum / cnt).toFixed(1) : '-';
+
+            return `
+              <tr>
+                <td style="text-align:center;">${idx + 1}</td>
+                <td><b>${s.nama}</b></td>
+                ${babs.map(b => `
+                  <td style="text-align:center;">
+                    <input type="number" min="0" max="100" class="score-input"
+                      value="${scores[b.id] ?? ''}"
+                      onchange="updateScore('${mapelId}', 'sumatif', '${s.id}', '${b.id}', this.value)">
+                  </td>
+                `).join('')}
+                <td style="text-align:center;">
+                  <input type="number" min="0" max="100" class="score-input" style="border-color:#0d5c91;"
+                    value="${scores.sas ?? ''}"
+                    onchange="updateScore('${mapelId}', 'sumatif', '${s.id}', 'sas', this.value)">
+                </td>
+                <td style="text-align:center; font-weight:700; color:#146c43;">${avg}</td>
+                <td style="text-align:center;">
+                  <button class="btn btn-danger btn-sm" title="Hapus nilai baris ini" onclick="clearStudentRowScore('${mapelId}', 'sumatif', '${s.id}')">🗑️</button>
+                </td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderMapelAkhirTable(rec, mapelId, tps) {
+  return `
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:45px;">No</th>
+            <th style="min-width:190px; text-align:left;">Nama Peserta Didik</th>
+            <th style="width:110px;">Nilai Akhir Rapor</th>
+            <th style="text-align:left;">Deskripsi Capaian Kompetensi Otomatis</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rec.students.map((s, idx) => {
+            const na = calcMapelFinal(rec, mapelId, s.id);
+            const fScores = rec.nilai[mapelId].formatif[s.id] || {};
+            let bestTp = tps[0]?.deskripsi || 'kompetensi dasar mata pelajaran';
+            let maxVal = -1;
+            tps.forEach(tp => {
+              const v = Number(fScores[tp.id] || 0);
+              if (v > maxVal) { maxVal = v; bestTp = tp.deskripsi; }
+            });
+            const predikat = na >= 88 ? 'sangat baik' : (na >= 75 ? 'baik' : 'cukup baik');
+            const deskripsi = `Menunjukkan penguasaan yang ${predikat} dalam ${bestTp.toLowerCase()}.`;
+
+            return `
+              <tr>
+                <td style="text-align:center;">${idx + 1}</td>
+                <td><b>${s.nama}</b></td>
+                <td style="text-align:center;"><span class="badge ${na >= 75 ? 'badge-green' : 'badge-maroon'}" style="font-size:0.9rem;">${na}</span></td>
+                <td>${deskripsi}</td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function updateScore(mapelId, jenis, studentId, colId, val) {
+  const rec = ensureContextData();
+  if (!rec.nilai[mapelId][jenis][studentId]) rec.nilai[mapelId][jenis][studentId] = {};
+  rec.nilai[mapelId][jenis][studentId][colId] = val === '' ? '' : Math.max(0, Math.min(100, Number(val)));
+  autoSave();
+  renderCurrentPage();
+}
+
+function clearStudentRowScore(mapelId, jenis, studentId) {
+  const rec = ensureContextData();
+  rec.nilai[mapelId][jenis][studentId] = {};
+  autoSave();
+  renderCurrentPage();
+}
+
+function resetMapelScores(mapelId) {
+  if (!confirm('Kosongkan seluruh nilai Formatif & Sumatif pada mata pelajaran ini?')) return;
+  const rec = ensureContextData();
+  rec.students.forEach(s => {
+    rec.nilai[mapelId].formatif[s.id] = {};
+    rec.nilai[mapelId].sumatif[s.id] = {};
+  });
+  autoSave();
+  renderCurrentPage();
+}
+
+// 6. MENU KHUSUS KOKURIKULER & KARAKTER SISWA (TANPA ISTILAH P5)
+function renderKokurikuler(container, rec) {
+  const { ta, sem, kelas } = appState.context;
+  const activeItems = rec.kokurikulerList.filter(k => k.aktif);
+
+  container.innerHTML = `
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Daftar Tema & Kegiatan Kokurikuler — ${kelas} (TA ${ta} • Sem ${sem})</div>
+          <small style="color:var(--text-muted);">Tema & kegiatan berstatus <b>Aktif</b> (dapat lebih dari 3) otomatis muncul pada tabel penilaian karakter di bawah.</small>
+        </div>
+        <button class="btn btn-green" onclick="openKokModal()">➕ Tambah Tema / Kegiatan Kokurikuler</button>
+      </div>
+
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>Tema Kokurikuler</th>
+              <th>Nama / Judul Kegiatan</th>
+              <th>Dimensi Profil (Otomatis)</th>
+              <th>7 Kebiasaan Anak Indonesia Hebat (Otomatis)</th>
+              <th style="width:110px;">Status</th>
+              <th style="width:160px;">Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rec.kokurikulerList.map(k => `
+              <tr>
+                <td><b>${k.tema}</b></td>
+                <td>${k.kegiatan}</td>
+                <td>${k.dimensi}</td>
+                <td><span class="badge badge-blue">${k.kebiasaan}</span></td>
+                <td style="text-align:center;">
+                  <button class="btn btn-sm ${k.aktif ? 'btn-green' : 'btn-yellow'}" onclick="toggleKokAktif('${k.id}')">
+                    ${k.aktif ? '✓ Aktif' : 'Nonaktif'}
+                  </button>
+                </td>
+                <td style="text-align:center;">
+                  <button class="btn btn-yellow btn-sm" onclick="openKokModal('${k.id}')">✏️ Edit</button>
+                  <button class="btn btn-danger btn-sm" onclick="deleteKok('${k.id}')">🗑️ Hapus</button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Penilaian Kokurikuler & Karakter Siswa (${activeItems.length} Kegiatan Aktif)</div>
+          <small style="color:var(--text-muted);">Pilih predikat: Belum Berkembang, Berkembang Sesuai Harapan, atau Sudah Berkembang.</small>
+        </div>
+        <button class="btn btn-maroon" onclick="manualSave()">💾 Simpan Penilaian Kokurikuler</button>
+      </div>
+
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:45px;">No</th>
+              <th style="min-width:180px; text-align:left;">Nama Siswa</th>
+              ${activeItems.map(k => `
+                <th style="min-width:190px;">
+                  <span style="color:#ffda6a; font-size:0.72rem; display:block;">${k.tema}</span>
+                  ${k.kegiatan}
+                </th>
+              `).join('')}
+              <th style="min-width:280px; text-align:left; background:#146c43;">Deskripsi Kokurikuler Otomatis</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rec.students.map((s, idx) => {
+              if (!rec.kokurikulerNilai[s.id]) rec.kokurikulerNilai[s.id] = {};
+              return `
+                <tr>
+                  <td style="text-align:center;">${idx + 1}</td>
+                  <td><b>${s.nama}</b></td>
+                  ${activeItems.map(k => {
+                    const val = rec.kokurikulerNilai[s.id][k.id] || 'Berkembang Sesuai Harapan';
+                    return `
+                      <td>
+                        <select style="width:100%; padding:6px; border-radius:5px; border:1px solid #bbb; font-weight:600; font-size:0.8rem;"
+                          onchange="updateKokScore('${s.id}', '${k.id}', this.value)">
+                          <option value="Belum Berkembang" ${val === 'Belum Berkembang' ? 'selected' : ''}>Belum Berkembang</option>
+                          <option value="Berkembang Sesuai Harapan" ${val === 'Berkembang Sesuai Harapan' ? 'selected' : ''}>Berkembang Sesuai Harapan</option>
+                          <option value="Sudah Berkembang" ${val === 'Sudah Berkembang' ? 'selected' : ''}>Sudah Berkembang</option>
+                        </select>
+                      </td>
+                    `;
+                  }).join('')}
+                  <td style="font-size:0.78rem; line-height:1.4;">${generateKokurikulerDesc(rec, s)}</td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+function openKokModal(kokId = null) {
+  const rec = ensureContextData();
+  const item = kokId ? rec.kokurikulerList.find(k => k.id === kokId) : {
+    tema: 'Navigasi Iman',
+    kegiatan: '',
+    dimensi: KOKURIKULER_PRESETS['Navigasi Iman'].dimensi,
+    kebiasaan: KOKURIKULER_PRESETS['Navigasi Iman'].kebiasaan,
+    aktif: true
+  };
+
+  const presetOptions = Object.keys(KOKURIKULER_PRESETS).map(t =>
+    `<option value="${t}" ${item.tema === t ? 'selected' : ''}>${t}</option>`
+  ).join('');
+
+  document.getElementById('modal-body').innerHTML = `
+    <h3 style="color:var(--maroon); margin-bottom:14px;">${kokId ? 'Edit Kegiatan Kokurikuler' : 'Tambah Tema & Kegiatan Kokurikuler'}</h3>
+    <div class="form-group" style="margin-bottom:12px;">
+      <label>Pilih Tema Kokurikuler (atau ketik tema baru di bawah)</label>
+      <select id="m-kok-preset" onchange="applyKokPreset(this.value)">
+        ${presetOptions}
+        <option value="custom">-- Tema Kustom Lainnya --</option>
+      </select>
+    </div>
+    <div class="form-group" style="margin-bottom:12px;">
+      <label>Nama Tema Kokurikuler</label>
+      <input type="text" id="m-kok-tema" value="${item.tema}">
+    </div>
+    <div class="form-group" style="margin-bottom:12px;">
+      <label>Nama / Judul Kegiatan</label>
+      <input type="text" id="m-kok-kegiatan" value="${item.kegiatan}" placeholder="Contoh: Hafalan 13 Surat Pendek">
+    </div>
+    <div class="form-group" style="margin-bottom:12px;">
+      <label>Dimensi Profil (Terisi Otomatis sesuai Tema)</label>
+      <input type="text" id="m-kok-dimensi" value="${item.dimensi}">
+    </div>
+    <div class="form-group" style="margin-bottom:12px;">
+      <label>7 Kebiasaan Anak Indonesia Hebat (Terisi Otomatis sesuai Tema)</label>
+      <input type="text" id="m-kok-kebiasaan" value="${item.kebiasaan}">
+    </div>
+    <div class="form-group" style="margin-bottom:18px;">
+      <label>Status Pelaksanaan Semester Ini</label>
+      <select id="m-kok-aktif">
+        <option value="true" ${item.aktif ? 'selected' : ''}>Aktif (Tampilkan di Penilaian)</option>
+        <option value="false" ${!item.aktif ? 'selected' : ''}>Nonaktif</option>
+      </select>
+    </div>
+    <div style="display:flex; justify-content:flex-end; gap:8px;">
+      <button class="btn" style="background:#ccc;" onclick="closeModal()">Batal</button>
+      <button class="btn btn-green" onclick="saveKok('${kokId || ''}')">Simpan Kokurikuler</button>
+    </div>
+  `;
+  document.getElementById('modal-backdrop').style.display = 'flex';
+}
+
+function applyKokPreset(val) {
+  if (KOKURIKULER_PRESETS[val]) {
+    document.getElementById('m-kok-tema').value = val;
+    document.getElementById('m-kok-dimensi').value = KOKURIKULER_PRESETS[val].dimensi;
+    document.getElementById('m-kok-kebiasaan').value = KOKURIKULER_PRESETS[val].kebiasaan;
+  } else {
+    document.getElementById('m-kok-tema').value = '';
+  }
+}
+
+function saveKok(kokId) {
+  const rec = ensureContextData();
+  const tema = document.getElementById('m-kok-tema').value.trim();
+  const kegiatan = document.getElementById('m-kok-kegiatan').value.trim();
+  const dimensi = document.getElementById('m-kok-dimensi').value.trim();
+  const kebiasaan = document.getElementById('m-kok-kebiasaan').value.trim();
+  const aktif = document.getElementById('m-kok-aktif').value === 'true';
+
+  if (!tema || !kegiatan) return alert('Tema dan Nama Kegiatan wajib diisi!');
+
+  if (kokId) {
+    const idx = rec.kokurikulerList.findIndex(k => k.id === kokId);
+    if (idx > -1) rec.kokurikulerList[idx] = { ...rec.kokurikulerList[idx], tema, kegiatan, dimensi, kebiasaan, aktif };
+  } else {
+    rec.kokurikulerList.push({ id: 'kok_' + Date.now(), tema, kegiatan, dimensi, kebiasaan, aktif });
+  }
+  closeModal();
+  autoSave();
+  renderCurrentPage();
+  showToast('Data Kokurikuler berhasil disimpan!');
+}
+
+function toggleKokAktif(kokId) {
+  const rec = ensureContextData();
+  const item = rec.kokurikulerList.find(k => k.id === kokId);
+  if (item) item.aktif = !item.aktif;
+  autoSave();
+  renderCurrentPage();
+}
+
+function deleteKok(kokId) {
+  if (!confirm('Hapus tema/kegiatan kokurikuler ini?')) return;
+  const rec = ensureContextData();
+  rec.kokurikulerList = rec.kokurikulerList.filter(k => k.id !== kokId);
+  autoSave();
+  renderCurrentPage();
+}
+
+function updateKokScore(studentId, kokId, val) {
+  const rec = ensureContextData();
+  if (!rec.kokurikulerNilai[studentId]) rec.kokurikulerNilai[studentId] = {};
+  rec.kokurikulerNilai[studentId][kokId] = val;
+  autoSave();
+  renderCurrentPage();
+}
+
+// 7. HALAMAN REKAPITULASI AKHIR (RAPOR / LEGER)
+function renderRekap(container, rec) {
+  const { ta, sem, kelas } = appState.context;
+  const guruInfo = appState.identitas.guru[kelas] || { nama: '-', nip: '-' };
+
+  container.innerHTML = `
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Leger & Rekapitulasi Nilai Akhir — ${appState.identitas.namaSekolah}</div>
+          <small style="color:var(--text-muted);">${kelas} • Tahun Ajaran ${ta} • Semester ${sem} | Wali/Guru: <b>${guruInfo.nama}</b></small>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;" class="no-print">
+          <button class="btn btn-green" onclick="manualSave()">💾 Simpan Rekap</button>
+          <button class="btn btn-yellow" onclick="exportExcel()">📊 Unduh Excel (.xlsx)</button>
+          <button class="btn btn-blue" onclick="window.print()">🖨️ Cetak / Simpan PDF</button>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table id="leger-table">
+          <thead>
+            <tr>
+              <th rowspan="2" style="width:40px;">No</th>
+              <th rowspan="2" style="min-width:170px; text-align:left;">Nama Peserta Didik</th>
+              <th colspan="${MAPEL_LIST.length}">Nilai Akhir Mata Pelajaran</th>
+              <th rowspan="2" style="background:#146c43;">Rata-Rata</th>
+              <th colspan="3" style="background:#0d5c91;">Absensi</th>
+              <th rowspan="2" style="min-width:260px; text-align:left; background:#0f6674;">Rekap Deskripsi Kokurikuler & Capaian</th>
+            </tr>
+            <tr>
+              ${MAPEL_LIST.map(m => `<th style="font-size:0.72rem; padding:6px 4px;">${m.name}</th>`).join('')}
+              <th style="width:45px; background:#0d5c91;">S</th>
+              <th style="width:45px; background:#0d5c91;">I</th>
+              <th style="width:45px; background:#0d5c91;">A</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rec.students.map((s, idx) => {
+              const scores = MAPEL_LIST.map(m => calcMapelFinal(rec, m.id, s.id));
+              const total = scores.reduce((a, b) => a + b, 0);
+              const avg = (total / MAPEL_LIST.length).toFixed(1);
+              const abs = rec.absensi[s.id] || { sakit: 0, izin: 0, alpa: 0 };
+
+              // Cari mapel tertinggi
+              let maxIdx = 0;
+              scores.forEach((sc, i) => { if (sc > scores[maxIdx]) maxIdx = i; });
+              const topMapel = MAPEL_LIST[maxIdx].name;
+
+              return `
+                <tr>
+                  <td style="text-align:center;">${idx + 1}</td>
+                  <td><b>${s.nama}</b><br><small style="color:#666;">NIS: ${s.nis}</small></td>
+                  ${scores.map(sc => `<td style="text-align:center; font-weight:600;">${sc}</td>`).join('')}
+                  <td style="text-align:center; font-weight:800; color:#146c43;">${avg}</td>
+                  <td style="text-align:center;"><input type="number" min="0" class="score-input" style="width:42px;" value="${abs.sakit}" onchange="updateAbsensi('${s.id}','sakit',this.value)"></td>
+                  <td style="text-align:center;"><input type="number" min="0" class="score-input" style="width:42px;" value="${abs.izin}" onchange="updateAbsensi('${s.id}','izin',this.value)"></td>
+                  <td style="text-align:center;"><input type="number" min="0" class="score-input" style="width:42px;" value="${abs.alpa}" onchange="updateAbsensi('${s.id}','alpa',this.value)"></td>
+                  <td style="font-size:0.76rem; line-height:1.35;">
+                    <b>Akademik:</b> Unggul pada ${topMapel} (${scores[maxIdx]}).<br>
+                    <b>Kokurikuler:</b> ${generateKokurikulerDesc(rec, s)}
+                  </td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; margin-top:28px; padding:0 20px; font-size:0.85rem;">
+        <div>
+          <p>Mengetahui,</p>
+          <p>Kepala ${appState.identitas.namaSekolah}</p>
+          <br><br><br>
+          <p><b><u>${appState.identitas.kepalaSekolah}</u></b></p>
+          <p>NIP. ${appState.identitas.nipKepsek}</p>
+        </div>
+        <div>
+          <p>Pulubala, ............................ 2026</p>
+          <p>${kelas === 'Guru Agama' ? 'Guru Mata Pelajaran Agama' : 'Guru ' + kelas}</p>
+          <br><br><br>
+          <p><b><u>${guruInfo.nama}</u></b></p>
+          <p>NIP. ${guruInfo.nip}</p>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function updateAbsensi(studentId, field, val) {
+  const rec = ensureContextData();
+  if (!rec.absensi[studentId]) rec.absensi[studentId] = { sakit: 0, izin: 0, alpa: 0 };
+  rec.absensi[studentId][field] = Math.max(0, Number(val) || 0);
+  autoSave();
+}
+
+// ==================== EXPORT EXCEL ====================
+function exportExcel() {
+  const rec = ensureContextData();
+  const { ta, sem, kelas } = appState.context;
+  const rows = rec.students.map((s, idx) => {
+    const row = {
+      'No': idx + 1,
+      'NIS': s.nis,
+      'Nama Peserta Didik': s.nama,
+      'L/P': s.jk
+    };
+    let sum = 0;
+    MAPEL_LIST.forEach(m => {
+      const val = calcMapelFinal(rec, m.id, s.id);
+      row[m.name] = val;
+      sum += val;
+    });
+    row['Rata-Rata'] = +(sum / MAPEL_LIST.length).toFixed(1);
+    const abs = rec.absensi[s.id] || { sakit: 0, izin: 0, alpa: 0 };
+    row['Sakit'] = abs.sakit;
+    row['Izin'] = abs.izin;
+    row['Tanpa Keterangan'] = abs.alpa;
+    row['Deskripsi Kokurikuler'] = generateKokurikulerDesc(rec, s);
+    return row;
+  });
+
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, `Leger_${kelas}_Sem${sem}`);
+  const safeTa = ta.replace('/', '-');
+  XLSX.writeFile(wb, `Daftar_Nilai_${appState.identitas.namaSekolah.replace(/\s+/g,'_')}_${kelas}_TA_${safeTa}_Sem_${sem}.xlsx`);
+  showToast('File Excel berhasil diunduh!');
+}
+
+function closeModal() {
+  document.getElementById('modal-backdrop').style.display = 'none';
+}
+
+// ==================== BOOTSTRAP ====================
+loadState();
+initSidebar();
+document.getElementById('global-ta').value = appState.context.ta;
+document.getElementById('global-sem').value = appState.context.sem;
+document.getElementById('global-kelas').value = appState.context.kelas;
+navigate('dashboard');
+</script>
+  <!-- KODE SINKRONISASI OTOMATIS KE GOOGLE FIREBASE V3 -->
+<script>
+  const FIREBASE_DB_URL = "https://firebasedatabase.app";
+
+  (function() {
+    const dbEndpoint = FIREBASE_DB_URL.replace(/\/$/, "") + "/data_nilai_agama_1_6.json";
+    let lastJsonSent = "";
+    let isSyncing = false;
+
+    async function tarikDariCloud() {
+      try {
+        const res = await fetch(dbEndpoint + "?t=" + Date.now());
+        const cloudData = await res.json();
+        if (cloudData && typeof cloudData === "object") {
+          let berubah = false;
+          for (const key in cloudData) {
+            if (localStorage.getItem(key) !== cloudData[key]) {
+              localStorage.setItem(key, cloudData[key]);
+              berubah = true;
+            }
+          }
+          lastJsonSent = JSON.stringify(cloudData);
+          if (berubah && !sessionStorage.getItem("sudah_reload_cloud")) {
+            sessionStorage.setItem("sudah_reload_cloud", "1");
+            location.reload();
+          } else {
+            sessionStorage.removeItem("sudah_reload_cloud");
+          }
+        }
+      } catch (e) {
+        console.error("Gagal tarik cloud:", e);
+      }
+    }
+
+    async function kirimKeCloud() {
+      if (isSyncing) return;
+      const semuaData = {};
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        semuaData[k] = localStorage.getItem(k);
+      }
+      const currentJson = JSON.stringify(semuaData);
+      if (currentJson === "{}" || currentJson === lastJsonSent) return;
+
+      isSyncing = true;
+      try {
+        await fetch(dbEndpoint, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: currentJson
+        });
+        lastJsonSent = currentJson;
+      } catch (e) {
+        console.error("Gagal kirim cloud:", e);
+      } finally {
+        isSyncing = false;
+      }
+    }
+
+    window.addEventListener("load", async () => {
+      await tarikDariCloud();
+      setInterval(kirimKeCloud, 3000);
+    });
+  })();
+</script>
+
+</body>
+</html>
