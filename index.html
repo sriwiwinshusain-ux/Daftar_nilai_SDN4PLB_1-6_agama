@@ -1791,10 +1791,9 @@ navigate('dashboard');
     });
   })();
 </script>
-  <!-- KODE PASSWORD MANDIRI GURU V2 (GANTI SANDI & PERINGATAN SALAH 3X) -->
+  <!-- KODE PASSWORD MANDIRI GURU V2 (PERBAIKAN SINTAKS) -->
 <script>
   (function() {
-    // PIN MASTER ADMIN (Digunakan Admin jika guru lupa password)
     const PIN_ADMIN_RESET = "sdn4plb";
     const STORAGE_KEY_PASS = "kunci_mandiri_guru_sdn4plb";
     const aksesTerbuka = {};
@@ -1873,7 +1872,6 @@ navigate('dashboard');
       overlay.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;font-family:sans-serif;";
 
       if (!sudahAdaPassword) {
-        // MODE 1: BUAT PASSWORD BARU OLEH GURU
         overlay.innerHTML = `
           <div style="background:#fff;border-radius:14px;max-width:350px;width:100%;padding:24px;box-shadow:0 20px 25px -5px rgba(0,0,0,0.2);text-align:center;">
             <div style="width:48px;height:48px;background:#ecfdf5;color:#059669;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:22px;">🔑</div>
@@ -1922,7 +1920,6 @@ navigate('dashboard');
         };
 
       } else {
-        // MODE 2: MASUKKAN PASSWORD / GANTI PASSWORD / RESET ADMIN
         overlay.innerHTML = `
           <div style="background:#fff;border-radius:14px;max-width:350px;width:100%;padding:24px;box-shadow:0 20px 25px -5px rgba(0,0,0,0.2);text-align:center;">
             <div style="width:48px;height:48px;background:#fef2f2;color:#800020;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:22px;">🔒</div>
@@ -1975,9 +1972,13 @@ navigate('dashboard');
           if (callbackDropdown) callbackDropdown(false);
         };
 
-        // FITUR GANTI PASSWORD MANDIRI OLEH GURU
         document.getElementById("btn-ganti-mandiri").onclick = function() {
           const passLama = prompt("Masukkan PASSWORD LAMA " + labelAkses + " terlebih dahulu:");
+          if (passLama === null) return;
+          if (passLama !== daftarPass[idAkses]) {
+            alert("Password lama salah! Anda tidak dapat mengganti password tanpa memasukkan password lama yang benar.");
+            return;
+          }
 
-  </body>
+</body>
 </html>
