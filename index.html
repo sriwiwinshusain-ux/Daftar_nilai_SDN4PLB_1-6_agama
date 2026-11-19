@@ -1791,13 +1791,13 @@ navigate('dashboard');
     });
   })();
 </script>
-  <!-- KODE PASSWORD MANDIRI GURU V3 (ANTI TERPOTONG) -->
+ <!-- KODE PASSWORD MANDIRI GURU V4 (100% STABIL) -->
 <script>
   (function() {
-    const PIN_ADMIN_RESET = "sdn4plb";
-    const STORAGE_KEY_PASS = "kunci_mandiri_guru_sdn4plb";
-    const aksesTerbuka = {};
-    const hitungSalah = {};
+    var PIN_ADMIN_RESET = "sdn4plb";
+    var STORAGE_KEY_PASS = "kunci_mandiri_guru_sdn4plb";
+    var aksesTerbuka = {};
+    var hitungSalah = {};
 
     function ambilDaftarPassword() {
       try {
@@ -1808,50 +1808,38 @@ navigate('dashboard');
     }
 
     function simpanPasswordBaru(idAkses, passBaru) {
-      const daftar = ambilDaftarPassword();
+      var daftar = ambilDaftarPassword();
       daftar[idAkses] = passBaru;
       localStorage.setItem(STORAGE_KEY_PASS, JSON.stringify(daftar));
     }
 
     function deteksiTarget(teks) {
-      const bersih = (teks || "").trim();
-      if (/^Kelas\s*1$/i.test(bersih)) return { id: "kls_1", label: "Kelas 1" };
-      if (/^Kelas\s*2$/i.test(bersih)) return { id: "kls_2", label: "Kelas 2" };
-      if (/^Kelas\s*3$/i.test(bersih)) return { id: "kls_3", label: "Kelas 3" };
-      if (/^Kelas\s*4$/i.test(bersih)) return { id: "kls_4", label: "Kelas 4" };
-      if (/^Kelas\s*5$/i.test(bersih)) return { id: "kls_5", label: "Kelas 5" };
-      if (/^Kelas\s*6$/i.test(bersih)) return { id: "kls_6", label: "Kelas 6" };
-      if (/^(Nilai\s*)?Agama$/i.test(bersih) || /^PAI$/i.test(bersih)) {
+      var bersih = (teks || "").trim();
+      if (/Kelas\s*1\b/i.test(bersih)) return { id: "kls_1", label: "Kelas 1" };
+      if (/Kelas\s*2\b/i.test(bersih)) return { id: "kls_2", label: "Kelas 2" };
+      if (/Kelas\s*3\b/i.test(bersih)) return { id: "kls_3", label: "Kelas 3" };
+      if (/Kelas\s*4\b/i.test(bersih)) return { id: "kls_4", label: "Kelas 4" };
+      if (/Kelas\s*5\b/i.test(bersih)) return { id: "kls_5", label: "Kelas 5" };
+      if (/Kelas\s*6\b/i.test(bersih)) return { id: "kls_6", label: "Kelas 6" };
+      if (/Agama/i.test(bersih) || /^PAI$/i.test(bersih)) {
         return { id: "mapel_agama", label: "Nilai Agama" };
       }
       return null;
     }
 
-    document.addEventListener("click", function(e) {
-      const target = e.target.closest("button, a, div, span, li");
-      if (!target) return;
-
-      const info = deteksiTarget(target.innerText);
-      if (info && !aksesTerbuka[info.id]) {
-        e.stopImmediatePropagation();
-        e.preventDefault();
-        tampilkanPopupMandiri(info.id, info.label, target, null);
-      }
-    }, true);
-
     document.addEventListener("change", function(e) {
-      const el = e.target;
+      var el = e.target;
       if (el && el.tagName === "SELECT") {
-        const idx = el.selectedIndex;
-        const teksPilihan = (idx >= 0 && el.options.item(idx)) ? el.options.item(idx).text : "";
-        let info = deteksiTarget(teksPilihan);
+        var idx = el.selectedIndex;
+        var teksPilihan = (idx >= 0 && el.options.item(idx)) ? el.options.item(idx).text : "";
+        var info = deteksiTarget(teksPilihan);
         if (!info && /^[1-6]$/.test(String(el.value).trim())) {
-          const val = String(el.value).trim();
+          var val = String(el.value).trim();
           info = { id: "kls_" + val, label: "Kelas " + val };
         }
         if (info && !aksesTerbuka[info.id]) {
           e.stopImmediatePropagation();
-          const nilaiSebelumnya = el.dataset.lastAllowed || "";
+          var nilaiSebelumnya = el.dataset.lastAllowed || "";
           tampilkanPopupMandiri(info.id, info.label, null, function(berhasil) {
             if (berhasil) {
               el.dataset.lastAllowed = el.value;
@@ -1866,37 +1854,46 @@ navigate('dashboard');
       }
     }, true);
 
+    document.addEventListener("click", function(e) {
+      var target = e.target.closest("button, a, li");
+      if (!target) return;
+      var info = deteksiTarget(target.innerText);
+      if (info && !aksesTerbuka[info.id]) {
+        e.stopImmediatePropagation();
+        e.preventDefault();
+        tampilkanPopupMandiri(info.id, info.label, target, null);
+      }
+    }, true);
+
     function tampilkanPopupMandiri(idAkses, labelAkses, tombolAsli, callbackDropdown) {
-      const lama = document.getElementById("modal-kunci-kelas");
+      var lama = document.getElementById("modal-kunci-kelas");
       if (lama) lama.remove();
 
-      const daftarPass = ambilDaftarPassword();
-      const sudahAdaPassword = Boolean(daftarPass[idAkses]);
+      var daftarPass = ambilDaftarPassword();
+      var sudahAdaPassword = Boolean(daftarPass[idAkses]);
 
-      const overlay = document.createElement("div");
+      var overlay = document.createElement("div");
       overlay.id = "modal-kunci-kelas";
       overlay.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;font-family:sans-serif;";
 
       if (!sudahAdaPassword) {
-        overlay.innerHTML = `
-          <div style="background:#fff;border-radius:14px;max-width:350px;width:100%;padding:24px;box-shadow:0 20px 25px -5px rgba(0,0,0,0.2);text-align:center;">
-            <div style="width:48px;height:48px;background:#ecfdf5;color:#059669;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:22px;">🔑</div>
-            <h3 style="margin:0 0 6px;font-size:18px;color:#1f2937;">Buat Password ${labelAkses}</h3>
-            <p style="margin:0 0 14px;font-size:13px;color:#6b7280;">Belum ada password. Silakan buat password khusus Anda sendiri (minimal 4 karakter) untuk mengunci ${labelAkses}.</p>
-            <input id="input-pass-baru1" type="password" placeholder="Ketik password baru..." style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;margin-bottom:8px;outline:none;">
-            <input id="input-pass-baru2" type="password" placeholder="Ulangi password baru..." style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;margin-bottom:8px;outline:none;">
-            <p id="pesan-err-pass" style="margin:0 0 12px;font-size:12px;color:#dc2626;display:none;"></p>
-            <div style="display:flex;gap:8px;">
-              <button id="btn-batal-pass" style="flex:1;padding:10px;border:1px solid #d1d5db;background:#f9fafb;color:#374151;border-radius:8px;font-weight:600;cursor:pointer;">Batal</button>
-              <button id="btn-simpan-pass" style="flex:1;padding:10px;border:none;background:#059669;color:#fff;border-radius:8px;font-weight:600;cursor:pointer;">Simpan & Masuk</button>
-            </div>
-          </div>
-        `;
+        overlay.innerHTML =
+          '<div style="background:#fff;border-radius:14px;max-width:350px;width:100%;padding:24px;box-shadow:0 20px 25px -5px rgba(0,0,0,0.2);text-align:center;">' +
+          '<div style="width:48px;height:48px;background:#ecfdf5;color:#059669;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:22px;">🔑</div>' +
+          '<h3 style="margin:0 0 6px;font-size:18px;color:#1f2937;">Buat Password ' + labelAkses + '</h3>' +
+          '<p style="margin:0 0 14px;font-size:13px;color:#6b7280;">Belum ada password. Silakan buat password khusus Anda sendiri (minimal 4 karakter) untuk mengunci ' + labelAkses + '.</p>' +
+          '<input id="input-pass-baru1" type="password" placeholder="Ketik password baru..." style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;margin-bottom:8px;outline:none;">' +
+          '<input id="input-pass-baru2" type="password" placeholder="Ulangi password baru..." style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;margin-bottom:8px;outline:none;">' +
+          '<p id="pesan-err-pass" style="margin:0 0 12px;font-size:12px;color:#dc2626;display:none;"></p>' +
+          '<div style="display:flex;gap:8px;">' +
+          '<button id="btn-batal-pass" style="flex:1;padding:10px;border:1px solid #d1d5db;background:#f9fafb;color:#374151;border-radius:8px;font-weight:600;cursor:pointer;">Batal</button>' +
+          '<button id="btn-simpan-pass" style="flex:1;padding:10px;border:none;background:#059669;color:#fff;border-radius:8px;font-weight:600;cursor:pointer;">Simpan & Masuk</button>' +
+          '</div></div>';
 
         document.body.appendChild(overlay);
-        const p1 = document.getElementById("input-pass-baru1");
-        const p2 = document.getElementById("input-pass-baru2");
-        const err = document.getElementById("pesan-err-pass");
+        var p1 = document.getElementById("input-pass-baru1");
+        var p2 = document.getElementById("input-pass-baru2");
+        var err = document.getElementById("pesan-err-pass");
         p1.focus();
 
         function prosesSimpan() {
@@ -1926,27 +1923,25 @@ navigate('dashboard');
         };
 
       } else {
-        overlay.innerHTML = `
-          <div style="background:#fff;border-radius:14px;max-width:350px;width:100%;padding:24px;box-shadow:0 20px 25px -5px rgba(0,0,0,0.2);text-align:center;">
-            <div style="width:48px;height:48px;background:#fef2f2;color:#800020;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:22px;">🔒</div>
-            <h3 style="margin:0 0 6px;font-size:18px;color:#1f2937;">Akses ${labelAkses}</h3>
-            <p style="margin:0 0 14px;font-size:13px;color:#6b7280;">Masukkan password yang telah dibuat oleh guru ${labelAkses}.</p>
-            <input id="input-pass-kelas" type="password" placeholder="Ketik password..." style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:15px;margin-bottom:8px;outline:none;">
-            <div id="pesan-err-pass" style="margin:0 0 12px;font-size:12px;color:#dc2626;display:none;background:#fef2f2;border:1px solid #fecaca;padding:8px;border-radius:6px;line-height:1.4;"></div>
-            <div style="display:flex;gap:8px;margin-bottom:14px;">
-              <button id="btn-batal-pass" style="flex:1;padding:10px;border:1px solid #d1d5db;background:#f9fafb;color:#374151;border-radius:8px;font-weight:600;cursor:pointer;">Batal</button>
-              <button id="btn-masuk-pass" style="flex:1;padding:10px;border:none;background:#800020;color:#fff;border-radius:8px;font-weight:600;cursor:pointer;">Masuk</button>
-            </div>
-            <div style="display:flex;justify-content:space-between;border-top:1px solid #f3f4f6;padding-top:10px;">
-              <button id="btn-ganti-mandiri" style="background:none;border:none;color:#059669;font-size:11px;font-weight:600;text-decoration:underline;cursor:pointer;">Ubah / Ganti Password</button>
-              <button id="btn-reset-admin" style="background:none;border:none;color:#6b7280;font-size:11px;text-decoration:underline;cursor:pointer;">Lupa? Reset Admin</button>
-            </div>
-          </div>
-        `;
+        overlay.innerHTML =
+          '<div style="background:#fff;border-radius:14px;max-width:350px;width:100%;padding:24px;box-shadow:0 20px 25px -5px rgba(0,0,0,0.2);text-align:center;">' +
+          '<div style="width:48px;height:48px;background:#fef2f2;color:#800020;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:22px;">🔒</div>' +
+          '<h3 style="margin:0 0 6px;font-size:18px;color:#1f2937;">Akses ' + labelAkses + '</h3>' +
+          '<p style="margin:0 0 14px;font-size:13px;color:#6b7280;">Masukkan password yang telah dibuat oleh guru ' + labelAkses + '.</p>' +
+          '<input id="input-pass-kelas" type="password" placeholder="Ketik password..." style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:15px;margin-bottom:8px;outline:none;">' +
+          '<div id="pesan-err-pass" style="margin:0 0 12px;font-size:12px;color:#dc2626;display:none;background:#fef2f2;border:1px solid #fecaca;padding:8px;border-radius:6px;line-height:1.4;"></div>' +
+          '<div style="display:flex;gap:8px;margin-bottom:14px;">' +
+          '<button id="btn-batal-pass" style="flex:1;padding:10px;border:1px solid #d1d5db;background:#f9fafb;color:#374151;border-radius:8px;font-weight:600;cursor:pointer;">Batal</button>' +
+          '<button id="btn-masuk-pass" style="flex:1;padding:10px;border:none;background:#800020;color:#fff;border-radius:8px;font-weight:600;cursor:pointer;">Masuk</button>' +
+          '</div>' +
+          '<div style="display:flex;justify-content:space-between;border-top:1px solid #f3f4f6;padding-top:10px;">' +
+          '<button id="btn-ganti-mandiri" style="background:none;border:none;color:#059669;font-size:11px;font-weight:600;text-decoration:underline;cursor:pointer;">Ubah / Ganti Password</button>' +
+          '<button id="btn-reset-admin" style="background:none;border:none;color:#6b7280;font-size:11px;text-decoration:underline;cursor:pointer;">Lupa? Reset Admin</button>' +
+          '</div></div>';
 
         document.body.appendChild(overlay);
-        const input = document.getElementById("input-pass-kelas");
-        const err = document.getElementById("pesan-err-pass");
+        var input = document.getElementById("input-pass-kelas");
+        var err = document.getElementById("pesan-err-pass");
         input.focus();
 
         function cekPassword() {
@@ -1958,7 +1953,7 @@ navigate('dashboard');
             if (callbackDropdown) callbackDropdown(true);
           } else {
             hitungSalah[idAkses] = (hitungSalah[idAkses] || 0) + 1;
-            const jumlahSalah = hitungSalah[idAkses];
+            var jumlahSalah = hitungSalah[idAkses];
 
             if (jumlahSalah >= 3) {
               err.innerHTML = "⚠️ <b>PERINGATAN: Anda sudah salah memasukkan password sebanyak " + jumlahSalah + " kali!</b><br>Pastikan huruf besar/kecil benar. Jika lupa password, klik <i>Lupa? Reset Admin</i> di bawah.";
@@ -1978,6 +1973,48 @@ navigate('dashboard');
           if (callbackDropdown) callbackDropdown(false);
         };
 
+              document.getElementById("btn-ganti-mandiri").onclick = function() {
+          var passLama = prompt("Masukkan PASSWORD LAMA " + labelAkses + " terlebih dahulu:");
+          if (passLama === null) return;
+          if (passLama !== daftarPass[idAkses]) {
+            alert("Password lama salah! Anda tidak dapat mengganti password tanpa memasukkan password lama yang benar.");
+            return;
+          }
+          var passBaru1 = prompt("Masukkan PASSWORD BARU untuk " + labelAkses + " (minimal 4 karakter):");
+          if (!passBaru1 || passBaru1.length < 4) {
+            alert("Gagal! Password baru minimal harus 4 karakter.");
+            return;
+          }
+          var passBaru2 = prompt("Ketik ulang PASSWORD BARU untuk konfirmasi:");
+          if (passBaru1 !== passBaru2) {
+            alert("Gagal! Ulangan password baru tidak cocok.");
+            return;
+          }
+          simpanPasswordBaru(idAkses, passBaru1);
+          hitungSalah[idAkses] = 0;
+          alert("✅ Password " + labelAkses + " berhasil diubah! Silakan masuk menggunakan password baru Anda.");
+          overlay.remove();
+          tampilkanPopupMandiri(idAkses, labelAkses, tombolAsli, callbackDropdown);
+        };
+
+        document.getElementById("btn-reset-admin").onclick = function() {
+          var pin = prompt("Masukkan PIN Master Admin untuk mereset password " + labelAkses + ":");
+          if (pin === PIN_ADMIN_RESET) {
+            var daftar = ambilDaftarPassword();
+            delete daftar[idAkses];
+            localStorage.setItem(STORAGE_KEY_PASS, JSON.stringify(daftar));
+            hitungSalah[idAkses] = 0;
+            alert("✅ Password " + labelAkses + " berhasil direset. Silakan buat password baru sekarang.");
+            overlay.remove();
+            tampilkanPopupMandiri(idAkses, labelAkses, tombolAsli, callbackDropdown);
+          } else if (pin !== null) {
+            alert("❌ PIN Admin salah!");
+          }
+        };
+      }
+    }
+  })();
+</script>
 
 </body>
 </html>
