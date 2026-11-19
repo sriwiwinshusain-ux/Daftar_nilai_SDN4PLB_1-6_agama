@@ -1791,7 +1791,7 @@ navigate('dashboard');
     });
   })();
 </script>
-  <!-- KODE PASSWORD MANDIRI GURU V2 (PERBAIKAN SINTAKS) -->
+  <!-- KODE PASSWORD MANDIRI GURU V3 (ANTI TERPOTONG) -->
 <script>
   (function() {
     const PIN_ADMIN_RESET = "sdn4plb";
@@ -1815,11 +1815,12 @@ navigate('dashboard');
 
     function deteksiTarget(teks) {
       const bersih = (teks || "").trim();
-      const cocokKelas = bersih.match(/^Kelas\s*([1-6])$/i);
-      if (cocokKelas) {
-        const angka = cocokKelas[1];
-        return { id: "kls_" + angka, label: "Kelas " + angka };
-      }
+      if (/^Kelas\s*1$/i.test(bersih)) return { id: "kls_1", label: "Kelas 1" };
+      if (/^Kelas\s*2$/i.test(bersih)) return { id: "kls_2", label: "Kelas 2" };
+      if (/^Kelas\s*3$/i.test(bersih)) return { id: "kls_3", label: "Kelas 3" };
+      if (/^Kelas\s*4$/i.test(bersih)) return { id: "kls_4", label: "Kelas 4" };
+      if (/^Kelas\s*5$/i.test(bersih)) return { id: "kls_5", label: "Kelas 5" };
+      if (/^Kelas\s*6$/i.test(bersih)) return { id: "kls_6", label: "Kelas 6" };
       if (/^(Nilai\s*)?Agama$/i.test(bersih) || /^PAI$/i.test(bersih)) {
         return { id: "mapel_agama", label: "Nilai Agama" };
       }
@@ -1841,8 +1842,13 @@ navigate('dashboard');
     document.addEventListener("change", function(e) {
       const el = e.target;
       if (el && el.tagName === "SELECT") {
-        const teksPilihan = el.options[el.selectedIndex] ? el.options[el.selectedIndex].text : "";
-        const info = deteksiTarget(teksPilihan) || (/^[1-6]$/.test(el.value) ? { id: "kls_" + el.value, label: "Kelas " + el.value } : null);
+        const idx = el.selectedIndex;
+        const teksPilihan = (idx >= 0 && el.options.item(idx)) ? el.options.item(idx).text : "";
+        let info = deteksiTarget(teksPilihan);
+        if (!info && /^[1-6]$/.test(String(el.value).trim())) {
+          const val = String(el.value).trim();
+          info = { id: "kls_" + val, label: "Kelas " + val };
+        }
         if (info && !aksesTerbuka[info.id]) {
           e.stopImmediatePropagation();
           const nilaiSebelumnya = el.dataset.lastAllowed || "";
@@ -1972,13 +1978,6 @@ navigate('dashboard');
           if (callbackDropdown) callbackDropdown(false);
         };
 
-        document.getElementById("btn-ganti-mandiri").onclick = function() {
-          const passLama = prompt("Masukkan PASSWORD LAMA " + labelAkses + " terlebih dahulu:");
-          if (passLama === null) return;
-          if (passLama !== daftarPass[idAkses]) {
-            alert("Password lama salah! Anda tidak dapat mengganti password tanpa memasukkan password lama yang benar.");
-            return;
-          }
 
 </body>
 </html>
