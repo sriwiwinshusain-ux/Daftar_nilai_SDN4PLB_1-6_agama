@@ -1791,13 +1791,14 @@ navigate('dashboard');
     });
   })();
 </script>
-  <!-- KODE PASSWORD MANDIRI GURU PER KELAS & AGAMA (SINKRON FIREBASE) -->
+  <!-- KODE PASSWORD MANDIRI GURU V2 (GANTI SANDI & PERINGATAN SALAH 3X) -->
 <script>
   (function() {
-    // PIN MASTER ADMIN (Gunakan jika ada guru yang lupa password untuk mereset)
+    // PIN MASTER ADMIN (Digunakan Admin jika guru lupa password)
     const PIN_ADMIN_RESET = "sdn4plb";
     const STORAGE_KEY_PASS = "kunci_mandiri_guru_sdn4plb";
     const aksesTerbuka = {};
+    const hitungSalah = {};
 
     function ambilDaftarPassword() {
       try {
@@ -1816,7 +1817,10 @@ navigate('dashboard');
     function deteksiTarget(teks) {
       const bersih = (teks || "").trim();
       const cocokKelas = bersih.match(/^Kelas\s*([1-6])$/i);
-      if (cocokKelas) return { id: "kls_" + cocokKelas, label: "Kelas " + cocokKelas };
+      if (cocokKelas) {
+        const angka = cocokKelas[1];
+        return { id: "kls_" + angka, label: "Kelas " + angka };
+      }
       if (/^(Nilai\s*)?Agama$/i.test(bersih) || /^PAI$/i.test(bersih)) {
         return { id: "mapel_agama", label: "Nilai Agama" };
       }
@@ -1904,6 +1908,7 @@ navigate('dashboard');
           }
           simpanPasswordBaru(idAkses, p1.value);
           aksesTerbuka[idAkses] = true;
+          hitungSalah[idAkses] = 0;
           overlay.remove();
           if (tombolAsli) tombolAsli.click();
           if (callbackDropdown) callbackDropdown(true);
@@ -1917,19 +1922,22 @@ navigate('dashboard');
         };
 
       } else {
-        // MODE 2: MASUKKAN PASSWORD YANG SUDAH DIBUAT
+        // MODE 2: MASUKKAN PASSWORD / GANTI PASSWORD / RESET ADMIN
         overlay.innerHTML = `
-          <div style="background:#fff;border-radius:14px;max-width:340px;width:100%;padding:24px;box-shadow:0 20px 25px -5px rgba(0,0,0,0.2);text-align:center;">
+          <div style="background:#fff;border-radius:14px;max-width:350px;width:100%;padding:24px;box-shadow:0 20px 25px -5px rgba(0,0,0,0.2);text-align:center;">
             <div style="width:48px;height:48px;background:#fef2f2;color:#800020;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:22px;">🔒</div>
             <h3 style="margin:0 0 6px;font-size:18px;color:#1f2937;">Akses ${labelAkses}</h3>
             <p style="margin:0 0 14px;font-size:13px;color:#6b7280;">Masukkan password yang telah dibuat oleh guru ${labelAkses}.</p>
             <input id="input-pass-kelas" type="password" placeholder="Ketik password..." style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:15px;margin-bottom:8px;outline:none;">
-            <p id="pesan-err-pass" style="margin:0 0 12px;font-size:12px;color:#dc2626;display:none;">Password salah! Silakan coba lagi.</p>
-            <div style="display:flex;gap:8px;margin-bottom:12px;">
+            <div id="pesan-err-pass" style="margin:0 0 12px;font-size:12px;color:#dc2626;display:none;background:#fef2f2;border:1px solid #fecaca;padding:8px;border-radius:6px;line-height:1.4;"></div>
+            <div style="display:flex;gap:8px;margin-bottom:14px;">
               <button id="btn-batal-pass" style="flex:1;padding:10px;border:1px solid #d1d5db;background:#f9fafb;color:#374151;border-radius:8px;font-weight:600;cursor:pointer;">Batal</button>
               <button id="btn-masuk-pass" style="flex:1;padding:10px;border:none;background:#800020;color:#fff;border-radius:8px;font-weight:600;cursor:pointer;">Masuk</button>
             </div>
-            <button id="btn-reset-admin" style="background:none;border:none;color:#6b7280;font-size:11px;text-decoration:underline;cursor:pointer;">Lupa password? Reset oleh Admin</button>
+            <div style="display:flex;justify-content:space-between;border-top:1px solid #f3f4f6;padding-top:10px;">
+              <button id="btn-ganti-mandiri" style="background:none;border:none;color:#059669;font-size:11px;font-weight:600;text-decoration:underline;cursor:pointer;">Ubah / Ganti Password</button>
+              <button id="btn-reset-admin" style="background:none;border:none;color:#6b7280;font-size:11px;text-decoration:underline;cursor:pointer;">Lupa? Reset Admin</button>
+            </div>
           </div>
         `;
 
@@ -1941,11 +1949,19 @@ navigate('dashboard');
         function cekPassword() {
           if (input.value === daftarPass[idAkses]) {
             aksesTerbuka[idAkses] = true;
+            hitungSalah[idAkses] = 0;
             overlay.remove();
             if (tombolAsli) tombolAsli.click();
             if (callbackDropdown) callbackDropdown(true);
           } else {
-            err.textContent = "Password salah! Silakan coba lagi.";
+            hitungSalah[idAkses] = (hitungSalah[idAkses] || 0) + 1;
+            const jumlahSalah = hitungSalah[idAkses];
+
+            if (jumlahSalah >= 3) {
+              err.innerHTML = "⚠️ <b>PERINGATAN: Anda sudah salah memasukkan password sebanyak " + jumlahSalah + " kali!</b><br>Pastikan huruf besar/kecil benar. Jika lupa password, klik <i>Lupa? Reset Admin</i> di bawah.";
+            } else {
+              err.innerHTML = "Password salah! (Percobaan salah " + jumlahSalah + " dari 3 kali).";
+            }
             err.style.display = "block";
             input.value = "";
             input.focus();
@@ -1958,22 +1974,10 @@ navigate('dashboard');
           overlay.remove();
           if (callbackDropdown) callbackDropdown(false);
         };
-        document.getElementById("btn-reset-admin").onclick = function() {
-          const pin = prompt("Masukkan PIN Master Admin untuk mereset password " + labelAkses + ":");
-          if (pin === PIN_ADMIN_RESET) {
-            const daftar = ambilDaftarPassword();
-            delete daftar[idAkses];
-            localStorage.setItem(STORAGE_KEY_PASS, JSON.stringify(daftar));
-            alert("Password " + labelAkses + " berhasil dihapus. Silakan klik " + labelAkses + " lagi untuk membuat password baru.");
-            overlay.remove();
-          } else if (pin !== null) {
-            alert("PIN Admin salah!");
-          }
-        };
-      }
-    }
-  })();
-</script>
 
-</body>
+        // FITUR GANTI PASSWORD MANDIRI OLEH GURU
+        document.getElementById("btn-ganti-mandiri").onclick = function() {
+          const passLama = prompt("Masukkan PASSWORD LAMA " + labelAkses + " terlebih dahulu:");
+
+  </body>
 </html>
