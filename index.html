@@ -1791,110 +1791,186 @@ navigate('dashboard');
     });
   })();
 </script>
-<!-- KODE KUNCI PASSWORD MASUK PER KELAS (AMAN TANPA UBAH DATA) -->
+  <!-- KODE PASSWORD MANDIRI GURU PER KELAS & AGAMA (SINKRON FIREBASE) -->
 <script>
   (function() {
-    // 1. ATUR PASSWORD MASING-MASING KELAS DI SINI (Bisa diganti sesuai keinginan)
-    const PASSWORD_KELAS = {
-      "1": "agama1",
-      "2": "agama2",
-      "3": "agama3",
-      "4": "agama4",
-      "5": "agama5",
-      "6": "agama6"
-    };
+    // PIN MASTER ADMIN (Gunakan jika ada guru yang lupa password untuk mereset)
+    const PIN_ADMIN_RESET = "sdn4plb";
+    const STORAGE_KEY_PASS = "kunci_mandiri_guru_sdn4plb";
+    const aksesTerbuka = {};
 
-    const kelasTerbuka = {};
+    function ambilDaftarPassword() {
+      try {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY_PASS) || "{}");
+      } catch (e) {
+        return {};
+      }
+    }
 
-    // Pantau klik pada tombol atau pilihan kelas di aplikasi
+    function simpanPasswordBaru(idAkses, passBaru) {
+      const daftar = ambilDaftarPassword();
+      daftar[idAkses] = passBaru;
+      localStorage.setItem(STORAGE_KEY_PASS, JSON.stringify(daftar));
+    }
+
+    function deteksiTarget(teks) {
+      const bersih = (teks || "").trim();
+      const cocokKelas = bersih.match(/^Kelas\s*([1-6])$/i);
+      if (cocokKelas) return { id: "kls_" + cocokKelas, label: "Kelas " + cocokKelas };
+      if (/^(Nilai\s*)?Agama$/i.test(bersih) || /^PAI$/i.test(bersih)) {
+        return { id: "mapel_agama", label: "Nilai Agama" };
+      }
+      return null;
+    }
+
     document.addEventListener("click", function(e) {
       const target = e.target.closest("button, a, div, span, li");
       if (!target) return;
 
-      const teks = (target.innerText || "").trim();
-      const cocok = teks.match(/^Kelas\s*([1-6])$/i);
-      if (cocok) {
-        const nomorKelas = cocok[1];
-        if (!kelasTerbuka[nomorKelas]) {
-          e.stopImmediatePropagation();
-          e.preventDefault();
-          tampilkanPopupPassword(nomorKelas, target);
-        }
+      const info = deteksiTarget(target.innerText);
+      if (info && !aksesTerbuka[info.id]) {
+        e.stopImmediatePropagation();
+        e.preventDefault();
+        tampilkanPopupMandiri(info.id, info.label, target, null);
       }
     }, true);
 
-    // Pantau juga jika pemilihan kelas menggunakan dropdown (<select>)
     document.addEventListener("change", function(e) {
       const el = e.target;
       if (el && el.tagName === "SELECT") {
         const teksPilihan = el.options[el.selectedIndex] ? el.options[el.selectedIndex].text : "";
-        const cocok = teksPilihan.match(/Kelas\s*([1-6])/i) || String(el.value).match(/^([1-6])$/);
-        if (cocok) {
-          const nomorKelas = cocok[1];
-          if (!kelasTerbuka[nomorKelas]) {
-            e.stopImmediatePropagation();
-            const nilaiSebelumnya = el.dataset.lastAllowed || "";
-            tampilkanPopupPassword(nomorKelas, null, function(berhasil) {
-              if (berhasil) {
-                el.dataset.lastAllowed = el.value;
-                el.dispatchEvent(new Event("change", { bubbles: true }));
-              } else {
-                el.value = nilaiSebelumnya;
-              }
-            });
-          } else {
-            el.dataset.lastAllowed = el.value;
-          }
+        const info = deteksiTarget(teksPilihan) || (/^[1-6]$/.test(el.value) ? { id: "kls_" + el.value, label: "Kelas " + el.value } : null);
+        if (info && !aksesTerbuka[info.id]) {
+          e.stopImmediatePropagation();
+          const nilaiSebelumnya = el.dataset.lastAllowed || "";
+          tampilkanPopupMandiri(info.id, info.label, null, function(berhasil) {
+            if (berhasil) {
+              el.dataset.lastAllowed = el.value;
+              el.dispatchEvent(new Event("change", { bubbles: true }));
+            } else {
+              el.value = nilaiSebelumnya;
+            }
+          });
+        } else {
+          el.dataset.lastAllowed = el.value;
         }
       }
     }, true);
 
-    function tampilkanPopupPassword(nomorKelas, tombolAsli, callbackDropdown) {
+    function tampilkanPopupMandiri(idAkses, labelAkses, tombolAsli, callbackDropdown) {
       const lama = document.getElementById("modal-kunci-kelas");
       if (lama) lama.remove();
+
+      const daftarPass = ambilDaftarPassword();
+      const sudahAdaPassword = Boolean(daftarPass[idAkses]);
 
       const overlay = document.createElement("div");
       overlay.id = "modal-kunci-kelas";
       overlay.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;font-family:sans-serif;";
 
-      overlay.innerHTML = `
-        <div style="background:#fff;border-radius:14px;max-width:340px;width:100%;padding:24px;box-shadow:0 20px 25px -5px rgba(0,0,0,0.2);text-align:center;">
-          <div style="width:48px;height:48px;background:#fef2f2;color:#800020;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:22px;">🔒</div>
-          <h3 style="margin:0 0 6px;font-size:18px;color:#1f2937;">Akses Kelas ${nomorKelas}</h3>
-          <p style="margin:0 0 16px;font-size:13px;color:#6b7280;">Masukkan password khusus Kelas ${nomorKelas} untuk membuka daftar nilai.</p>
-          <input id="input-pass-kelas" type="password" placeholder="Ketik password..." style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:15px;margin-bottom:8px;outline:none;">
-          <p id="pesan-err-pass" style="margin:0 0 12px;font-size:12px;color:#dc2626;display:none;">Password salah! Silakan coba lagi.</p>
-          <div style="display:flex;gap:8px;">
-            <button id="btn-batal-pass" style="flex:1;padding:10px;border:1px solid #d1d5db;background:#f9fafb;color:#374151;border-radius:8px;font-weight:600;cursor:pointer;">Batal</button>
-            <button id="btn-masuk-pass" style="flex:1;padding:10px;border:none;background:#800020;color:#fff;border-radius:8px;font-weight:600;cursor:pointer;">Masuk</button>
+      if (!sudahAdaPassword) {
+        // MODE 1: BUAT PASSWORD BARU OLEH GURU
+        overlay.innerHTML = `
+          <div style="background:#fff;border-radius:14px;max-width:350px;width:100%;padding:24px;box-shadow:0 20px 25px -5px rgba(0,0,0,0.2);text-align:center;">
+            <div style="width:48px;height:48px;background:#ecfdf5;color:#059669;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:22px;">🔑</div>
+            <h3 style="margin:0 0 6px;font-size:18px;color:#1f2937;">Buat Password ${labelAkses}</h3>
+            <p style="margin:0 0 14px;font-size:13px;color:#6b7280;">Belum ada password. Silakan buat password khusus Anda sendiri (minimal 4 karakter) untuk mengunci ${labelAkses}.</p>
+            <input id="input-pass-baru1" type="password" placeholder="Ketik password baru..." style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;margin-bottom:8px;outline:none;">
+            <input id="input-pass-baru2" type="password" placeholder="Ulangi password baru..." style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;margin-bottom:8px;outline:none;">
+            <p id="pesan-err-pass" style="margin:0 0 12px;font-size:12px;color:#dc2626;display:none;"></p>
+            <div style="display:flex;gap:8px;">
+              <button id="btn-batal-pass" style="flex:1;padding:10px;border:1px solid #d1d5db;background:#f9fafb;color:#374151;border-radius:8px;font-weight:600;cursor:pointer;">Batal</button>
+              <button id="btn-simpan-pass" style="flex:1;padding:10px;border:none;background:#059669;color:#fff;border-radius:8px;font-weight:600;cursor:pointer;">Simpan & Masuk</button>
+            </div>
           </div>
-        </div>
-      `;
+        `;
 
-      document.body.appendChild(overlay);
-      const input = document.getElementById("input-pass-kelas");
-      const err = document.getElementById("pesan-err-pass");
-      input.focus();
+        document.body.appendChild(overlay);
+        const p1 = document.getElementById("input-pass-baru1");
+        const p2 = document.getElementById("input-pass-baru2");
+        const err = document.getElementById("pesan-err-pass");
+        p1.focus();
 
-      function cekPassword() {
-        if (input.value === PASSWORD_KELAS[nomorKelas]) {
-          kelasTerbuka[nomorKelas] = true;
+        function prosesSimpan() {
+          if (p1.value.length < 4) {
+            err.textContent = "Password minimal 4 karakter!";
+            err.style.display = "block";
+            return;
+          }
+          if (p1.value !== p2.value) {
+            err.textContent = "Ulangan password tidak cocok!";
+            err.style.display = "block";
+            return;
+          }
+          simpanPasswordBaru(idAkses, p1.value);
+          aksesTerbuka[idAkses] = true;
           overlay.remove();
           if (tombolAsli) tombolAsli.click();
           if (callbackDropdown) callbackDropdown(true);
-        } else {
-          err.style.display = "block";
-          input.value = "";
-          input.focus();
         }
-      }
 
-      document.getElementById("btn-masuk-pass").onclick = cekPassword;
-      input.onkeydown = function(ev) { if (ev.key === "Enter") cekPassword(); };
-      document.getElementById("btn-batal-pass").onclick = function() {
-        overlay.remove();
-        if (callbackDropdown) callbackDropdown(false);
-      };
+        document.getElementById("btn-simpan-pass").onclick = prosesSimpan;
+        p2.onkeydown = function(ev) { if (ev.key === "Enter") prosesSimpan(); };
+        document.getElementById("btn-batal-pass").onclick = function() {
+          overlay.remove();
+          if (callbackDropdown) callbackDropdown(false);
+        };
+
+      } else {
+        // MODE 2: MASUKKAN PASSWORD YANG SUDAH DIBUAT
+        overlay.innerHTML = `
+          <div style="background:#fff;border-radius:14px;max-width:340px;width:100%;padding:24px;box-shadow:0 20px 25px -5px rgba(0,0,0,0.2);text-align:center;">
+            <div style="width:48px;height:48px;background:#fef2f2;color:#800020;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:22px;">🔒</div>
+            <h3 style="margin:0 0 6px;font-size:18px;color:#1f2937;">Akses ${labelAkses}</h3>
+            <p style="margin:0 0 14px;font-size:13px;color:#6b7280;">Masukkan password yang telah dibuat oleh guru ${labelAkses}.</p>
+            <input id="input-pass-kelas" type="password" placeholder="Ketik password..." style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:15px;margin-bottom:8px;outline:none;">
+            <p id="pesan-err-pass" style="margin:0 0 12px;font-size:12px;color:#dc2626;display:none;">Password salah! Silakan coba lagi.</p>
+            <div style="display:flex;gap:8px;margin-bottom:12px;">
+              <button id="btn-batal-pass" style="flex:1;padding:10px;border:1px solid #d1d5db;background:#f9fafb;color:#374151;border-radius:8px;font-weight:600;cursor:pointer;">Batal</button>
+              <button id="btn-masuk-pass" style="flex:1;padding:10px;border:none;background:#800020;color:#fff;border-radius:8px;font-weight:600;cursor:pointer;">Masuk</button>
+            </div>
+            <button id="btn-reset-admin" style="background:none;border:none;color:#6b7280;font-size:11px;text-decoration:underline;cursor:pointer;">Lupa password? Reset oleh Admin</button>
+          </div>
+        `;
+
+        document.body.appendChild(overlay);
+        const input = document.getElementById("input-pass-kelas");
+        const err = document.getElementById("pesan-err-pass");
+        input.focus();
+
+        function cekPassword() {
+          if (input.value === daftarPass[idAkses]) {
+            aksesTerbuka[idAkses] = true;
+            overlay.remove();
+            if (tombolAsli) tombolAsli.click();
+            if (callbackDropdown) callbackDropdown(true);
+          } else {
+            err.textContent = "Password salah! Silakan coba lagi.";
+            err.style.display = "block";
+            input.value = "";
+            input.focus();
+          }
+        }
+
+        document.getElementById("btn-masuk-pass").onclick = cekPassword;
+        input.onkeydown = function(ev) { if (ev.key === "Enter") cekPassword(); };
+        document.getElementById("btn-batal-pass").onclick = function() {
+          overlay.remove();
+          if (callbackDropdown) callbackDropdown(false);
+        };
+        document.getElementById("btn-reset-admin").onclick = function() {
+          const pin = prompt("Masukkan PIN Master Admin untuk mereset password " + labelAkses + ":");
+          if (pin === PIN_ADMIN_RESET) {
+            const daftar = ambilDaftarPassword();
+            delete daftar[idAkses];
+            localStorage.setItem(STORAGE_KEY_PASS, JSON.stringify(daftar));
+            alert("Password " + labelAkses + " berhasil dihapus. Silakan klik " + labelAkses + " lagi untuk membuat password baru.");
+            overlay.remove();
+          } else if (pin !== null) {
+            alert("PIN Admin salah!");
+          }
+        };
+      }
     }
   })();
 </script>
